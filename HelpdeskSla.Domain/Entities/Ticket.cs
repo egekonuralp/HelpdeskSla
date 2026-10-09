@@ -1,0 +1,114 @@
+﻿using HelpdeskSla.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace HelpdeskSla.Domain.Entities
+{
+    public class Ticket
+    {
+        public int Id { get; private set; }
+
+        public string Title { get; private set; }
+
+        public string Description { get; private set; }
+
+        public TicketPriority Priority { get; private set; }
+
+        public TicketStatus Status { get; private set; }
+
+        public int? AssignedUserId { get; private set; }
+
+        public  Ticket(string title, string description, TicketPriority priority)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Ticket Başlığı Boş Olamaz !!! ", nameof(title));
+            }
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                throw new ArgumentException("Ticket Açıklaması Boş Olamaz !!! ", nameof(description));
+            }
+
+            if (!Enum.IsDefined(priority))
+            {
+                throw new ArgumentOutOfRangeException(nameof(priority), "Geçersiz Ticket Önceliği");
+            }
+
+            Title = title;
+            Description = description;
+            Priority = priority;
+            Status = TicketStatus.Open;           
+        }
+
+        public void Close()
+        {
+            if (Status != TicketStatus.Resolved)
+            {
+                throw new InvalidOperationException("Ticket'ın Kapatılabilmesi İçin Önce Resolved Durumunda Olması Gerekir.");
+            }
+
+            Status = TicketStatus.Closed;
+        }
+
+        public void Assign(int userId)
+        {
+            if (Status != TicketStatus.Open)
+            {
+                throw new InvalidOperationException("Yalnızca Open Durumundaki Ticket Atanabilir.");
+            }
+
+            if (userId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(userId), "Kullanıcı ID'si Sıfırdan Büyük Olmalı.");
+            }
+
+            AssignedUserId = userId;
+            Status = TicketStatus.Assigned;
+        }
+
+        public void StartProgress()
+        {
+            if (Status != TicketStatus.Assigned)
+            {
+                throw new InvalidOperationException("Yalnızca Assigned Durumundaki Ticket Üzerinde Çalışmaya Başlanabilir !");
+            }
+
+            Status = TicketStatus.InProgress;
+        }
+
+        public void WaitForCustomer()
+        {
+            if (Status != TicketStatus.InProgress)
+            {
+                throw new InvalidOperationException("Yalnızca InProgress durumundaki Ticket müşteri yanıtı beklemeye alınabilir.");
+            }
+
+            Status = TicketStatus.PendingCustomer;
+        }
+
+        public void ResumeProgress()
+        {
+            if (Status != TicketStatus.PendingCustomer)
+            {
+                throw new InvalidOperationException("Yalnızca PendingCustomer durumundaki Ticket devam ettirilebilir.");
+            }
+
+            Status = TicketStatus.InProgress;
+        }
+
+        public void Resolve()
+        {
+            if (Status != TicketStatus.InProgress)
+            {
+                throw new InvalidOperationException("Yalnızca InProgress durumundaki Ticket çözülebilir.");
+            }
+
+            Status = TicketStatus.Resolved;
+        }
+    }
+}
+

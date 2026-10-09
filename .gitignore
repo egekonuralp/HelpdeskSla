@@ -1,0 +1,16 @@
+# .NET derleme çıktıları
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio dosyaları
+.vs/
+*.user
+*.suo
+
+# Test çıktıları
+TestResults/
+coverage/
+
+# Gizli ortam değişkenleri
+.env
+.env.*

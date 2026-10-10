@@ -38,6 +38,21 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
+        public TimeSpan SlaTarget
+        {
+            get
+            {
+                return Priority switch
+                { 
+                    TicketPriority.Low => TimeSpan.FromHours(24),
+                    TicketPriority.Medium => TimeSpan.FromHours(12),
+                    TicketPriority.High => TimeSpan.FromHours(8),
+                    TicketPriority.Critical => TimeSpan.FromHours(2),
+                    _ => throw new ArgumentOutOfRangeException(nameof(Priority))
+                };
+            }
+        }
+
         public  Ticket(string title, string description, TicketPriority priority)
         {
             if (string.IsNullOrWhiteSpace(title))

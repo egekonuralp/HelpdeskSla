@@ -25,6 +25,19 @@ namespace HelpdeskSla.Domain.Entities
 
         public DateTimeOffset? ResolvedAt { get; private set; }
 
+        public TimeSpan? ResolutionTime
+        {
+            get
+            {
+                if (ResolvedAt == null)
+                {
+                    return null;
+                }
+
+                return ResolvedAt.Value - CreatedAt;
+            }
+        }
+
         public  Ticket(string title, string description, TicketPriority priority)
         {
             if (string.IsNullOrWhiteSpace(title))

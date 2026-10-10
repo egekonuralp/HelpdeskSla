@@ -525,5 +525,35 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(beforeClose, ticket.ResolutionTime);
         }
+
+        [Fact]
+        public void Constructor_CriticalPriority_ShouldHaveTwoHourSlaTarget()
+        {
+            // Arrange & Act
+            var ticket = new Ticket(
+                "Sunucu erişilemiyor",
+                "Üretim ortamındaki sunucu yanıt vermiyor",
+                TicketPriority.Critical);
+
+            // Assert
+            Assert.Equal(TimeSpan.FromHours(2), ticket.SlaTarget);
+        }
+
+        [Theory]
+        [InlineData(TicketPriority.Low, 24)]
+        [InlineData(TicketPriority.Medium, 12)]
+        [InlineData(TicketPriority.High, 8)]
+        [InlineData(TicketPriority.Critical, 2)]
+        public void Constructor_ValidPriority_ShouldSetCorrectSlaTarget(TicketPriority priority, int expectedHours)
+        {
+            // Arrange & Act
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                priority);
+
+            // Assert
+            Assert.Equal(TimeSpan.FromHours(expectedHours), ticket.SlaTarget);
+        }
     }
 }

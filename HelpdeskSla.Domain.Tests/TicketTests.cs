@@ -483,5 +483,47 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal(5, ticket.AssignedUserId);
             Assert.Null(ticket.ResolvedAt);
         }
+
+        [Fact]
+        public void Constructor_NewTicket_ShouldHaveNullResolutionTime()
+        {
+            // Arrange & Act
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.High);
+
+            // Assert
+            Assert.Null(ticket.ResolutionTime);
+        }
+
+        [Fact]
+        public void Resolve_InProgressTicket_ShouldCalculateResolutionTime()
+        {
+            // Arrange 
+            var ticket = CreateInProgressTicket();
+
+            // Act
+            ticket.Resolve();
+
+            // Assert
+            Assert.NotNull(ticket.ResolutionTime);
+            Assert.Equal(ticket.ResolvedAt!.Value - ticket.CreatedAt, ticket.ResolutionTime);
+        }
+
+        [Fact]
+        public void Close_ResolvedTicket_ShouldPreserveResolutionTime()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+
+            var beforeClose = ticket.ResolutionTime;
+
+            // Act
+            ticket.Close();
+
+            // Assert
+            Assert.Equal(beforeClose, ticket.ResolutionTime);
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace HelpdeskSla.Domain.Tests
@@ -554,6 +555,129 @@ namespace HelpdeskSla.Domain.Tests
 
             // Assert
             Assert.Equal(TimeSpan.FromHours(expectedHours), ticket.SlaTarget);
+        }
+
+        [Fact]
+        public void Constructor_NewTicket_ShouldHaveUnknownSlaBreach()
+        {
+            // Arrange & Act
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Critical);
+
+            // Assert
+            Assert.Null(ticket.IsSlaBreached);
+        }
+
+        [Fact]
+        public void Resolve_TicketWithinSlaTarget_ShouldNotBeBreached()
+        {
+            // Arrange
+            var ticket = CreateInProgressTicket();
+
+            // Act
+            ticket.Resolve();
+
+            // Assert
+            Assert.NotNull(ticket.IsSlaBreached);
+            Assert.False(ticket.IsSlaBreached.Value);
+        }
+
+        [Fact]
+        public void Resolve_CriticalTicketAfterThreeHours_ShouldBeSlaBreached()
+        {
+            // Arrange 
+            var startTime = new DateTimeOffset(2026, 10, 10, 10, 0, 0, TimeSpan.Zero);
+
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(3));
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromHours(3), ticket.ResolutionTime);
+            Assert.Equal(TimeSpan.FromHours(2), ticket.SlaTarget);
+            Assert.True(ticket.IsSlaBreached == true);
+        }
+
+        [Fact]
+        public void Resolve_CriticalTicketExactlyAtSlaTarget_ShouldNotBeBreached()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 10, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(2));
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromHours(2), ticket.ResolutionTime);
+            Assert.Equal(false, ticket.IsSlaBreached);
+        }
+
+        [Fact]
+        public void IsCurrentlyOverdue_UnresolvedCriticalTicketAfterThreeHours_ShouldReturnTrue()
+        {
+            // Arrange 
+            var startTime = new DateTimeOffset(2026, 10, 10, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(3));
+
+            // Assert
+            Assert.True(ticket.IsCurrentlyOverdue());
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void IsCurrentlyOverdue_UnresolvedCriticalTicketExactlyAtTarget_ShouldReturnFalse()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 10, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(2));
+
+            // Assert
+            Assert.False(ticket.IsCurrentlyOverdue());
         }
     }
 }

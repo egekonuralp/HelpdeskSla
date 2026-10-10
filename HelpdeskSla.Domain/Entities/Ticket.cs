@@ -25,6 +25,8 @@ namespace HelpdeskSla.Domain.Entities
 
         public DateTimeOffset? ResolvedAt { get; private set; }
 
+        private readonly TimeProvider _timeProvider;
+
         public TimeSpan? ResolutionTime
         {
             get
@@ -53,7 +55,20 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public  Ticket(string title, string description, TicketPriority priority)
+        public bool? IsSlaBreached
+        {
+            get
+            {
+                if (ResolutionTime == null)
+                {
+                    return null;
+                }
+
+                return ResolutionTime.Value > SlaTarget;
+            }
+        }
+
+        public  Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
         {
             if (string.IsNullOrWhiteSpace(title))
             {
@@ -70,11 +85,13 @@ namespace HelpdeskSla.Domain.Entities
                 throw new ArgumentOutOfRangeException(nameof(priority), "Geçersiz Ticket Önceliği");
             }
 
+            _timeProvider = timeProvider ?? TimeProvider.System;
+
             Title = title;
             Description = description;
             Priority = priority;
             Status = TicketStatus.Open;         
-            CreatedAt = DateTimeOffset.UtcNow;
+            CreatedAt = _timeProvider.GetUtcNow();
         }
 
         public void Close()
@@ -141,7 +158,19 @@ namespace HelpdeskSla.Domain.Entities
             }
 
             Status = TicketStatus.Resolved;
-            ResolvedAt = DateTimeOffset.UtcNow;
+            ResolvedAt = _timeProvider.GetUtcNow();
+        }
+
+        public bool IsCurrentlyOverdue()
+        {
+            if (ResolvedAt != null)
+            {
+                return false;
+            }
+
+            var elapsedTime = _timeProvider.GetUtcNow() - CreatedAt;
+
+            return elapsedTime > SlaTarget;
         }
     }
 }

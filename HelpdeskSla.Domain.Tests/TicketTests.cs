@@ -6,6 +6,33 @@ namespace HelpdeskSla.Domain.Tests
 {
     public class TicketTests
     {
+        private static Ticket CreateResolvedTicket()
+        {
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+            ticket.Resolve();
+
+            return ticket;
+        }
+
+        private static Ticket CreateInProgressTicket()
+        {
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            return ticket;
+        }
+
         [Fact]
         public void Constructor_ValidData_ShouldCreateOpenTicket()
         {
@@ -333,14 +360,7 @@ namespace HelpdeskSla.Domain.Tests
         public void Close_ResolvedTicket_ShouldChangeStatusToClosed()
         {
             // Arrange 
-            var ticket = new Ticket(
-                "İnternet çalışmıyor",
-                "Modem bağlantısı yok",
-                TicketPriority.Medium);
-
-            ticket.Assign(5);
-            ticket.StartProgress();
-            ticket.Resolve();
+            var ticket = CreateResolvedTicket();
 
             // Act
             ticket.Close();
@@ -354,13 +374,7 @@ namespace HelpdeskSla.Domain.Tests
         public void Close_InProgressTicket_ShouldThrowInvalidOperationException()
         {
             // Arrange
-            var ticket = new Ticket(
-                "İnternet çalışmıyor",
-                "Modem bağlantısı yok",
-                TicketPriority.Medium);
-
-            ticket.Assign(5);
-            ticket.StartProgress();
+            var ticket = CreateInProgressTicket();
 
             // Act
             Assert.Throws<InvalidOperationException>(() =>
@@ -371,6 +385,44 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(TicketStatus.InProgress, ticket.Status);
             Assert.Equal(5, ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void Constructor_ValidData_ShouldSetCreatedAt()
+        {
+            // Arrange
+            var beforeCreation = DateTimeOffset.UtcNow;
+
+            // Act
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Low);
+
+            // Assert
+            var afterCreation = DateTimeOffset.UtcNow;  
+
+            Assert.InRange(ticket.CreatedAt, beforeCreation, afterCreation);
+        }
+
+        [Fact]
+        public void CreatedAt_ShouldNotChangeAfterStatusTransitions()
+        {
+            // Arrange 
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Low);
+
+            var createdAt = ticket.CreatedAt;
+
+            // Act
+            ticket.Assign(5);
+            ticket.StartProgress();
+            ticket.Resolve();
+           
+            // Assert
+            Assert.Equal(createdAt, ticket.CreatedAt);
         }
     }
 }

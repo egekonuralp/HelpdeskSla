@@ -21,6 +21,10 @@ namespace HelpdeskSla.Domain.Entities
 
         public int? AssignedUserId { get; private set; }
 
+        public DateTimeOffset CreatedAt { get; private set; }
+
+
+
         public  Ticket(string title, string description, TicketPriority priority)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -41,7 +45,8 @@ namespace HelpdeskSla.Domain.Entities
             Title = title;
             Description = description;
             Priority = priority;
-            Status = TicketStatus.Open;           
+            Status = TicketStatus.Open;         
+            CreatedAt = DateTimeOffset.UtcNow;
         }
 
         public void Close()

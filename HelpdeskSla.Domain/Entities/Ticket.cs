@@ -23,7 +23,7 @@ namespace HelpdeskSla.Domain.Entities
 
         public DateTimeOffset CreatedAt { get; private set; }
 
-
+        public DateTimeOffset? ResolvedAt { get; private set; }
 
         public  Ticket(string title, string description, TicketPriority priority)
         {
@@ -113,6 +113,7 @@ namespace HelpdeskSla.Domain.Entities
             }
 
             Status = TicketStatus.Resolved;
+            ResolvedAt = DateTimeOffset.UtcNow;
         }
     }
 }

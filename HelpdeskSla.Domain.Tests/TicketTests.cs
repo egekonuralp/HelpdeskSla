@@ -424,5 +424,64 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(createdAt, ticket.CreatedAt);
         }
+
+        [Fact]
+        public void Constructor_NewTicket_ShouldHaveNullResolvedAt()
+        {
+            // Arrange & Act
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Low);
+
+            // Assert
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void Resolve_InProgressTicket_ShouldSetResolvedAt()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Low);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            var beforeResolve = DateTimeOffset.UtcNow;
+
+            // Act
+            ticket.Resolve();
+
+            // Assert
+            var afterResolve = DateTimeOffset.UtcNow;
+            Assert.NotNull(ticket.ResolvedAt);
+            Assert.InRange(ticket.ResolvedAt!.Value, beforeResolve, afterResolve);
+        }
+
+        [Fact]
+        public void Resolve_AssignedTicket_ShouldNotSetResolvedAt()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Low);
+
+            ticket.Assign(5);
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                ticket.Resolve();
+            });
+
+            // Assert
+            Assert.Equal(TicketStatus.Assigned, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+            Assert.Null(ticket.ResolvedAt);
+        }
     }
 }

@@ -63,6 +63,19 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
+        public TimeSpan? RemainingSlaTime
+        {
+            get
+            {
+                if (ResolvedAt != null)
+                {
+                    return null;
+                }
+
+                return SlaDeadline - _timeProvider.GetUtcNow();
+            }
+        }
+
         public bool? IsSlaBreached
         {
             get

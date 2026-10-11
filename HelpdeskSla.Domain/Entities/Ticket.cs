@@ -55,6 +55,14 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
+        public DateTimeOffset SlaDeadline
+        {
+            get
+            {
+                return CreatedAt + SlaTarget;
+            }
+        }
+
         public bool? IsSlaBreached
         {
             get

@@ -679,5 +679,46 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.False(ticket.IsCurrentlyOverdue());
         }
+
+        [Fact]
+        public void Constructor_CriticalTicket_ShouldSetCorrectSlaDeadline()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            // Act
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            // Assert
+            var expectedDeadline = startTime.AddHours(2);
+            Assert.Equal(expectedDeadline, ticket.SlaDeadline);
+        }
+
+        [Theory]
+        [InlineData(TicketPriority.Low, 24)]
+        [InlineData(TicketPriority.Medium, 12)]
+        [InlineData(TicketPriority.High, 8)]
+        [InlineData(TicketPriority.Critical, 2)]
+        public void Constructor_ValidPriority_ShouldCalculateCorrectSlaDeadline(TicketPriority priority, int expectedHours)
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            // Act
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                priority, fakeTime);
+
+            // Assert
+            var expectedDeadline = startTime.AddHours(expectedHours);
+            Assert.Equal(expectedDeadline, ticket.SlaDeadline);
+        }
     }
 }

@@ -89,6 +89,23 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
+        public SlaStatus SlaStatus
+        {
+            get
+            {
+                if (ResolvedAt != null)
+                {
+                    return IsSlaBreached == true
+                        ? SlaStatus.Breached
+                        : SlaStatus.Met;
+                }
+
+                return IsCurrentlyOverdue()
+                    ? SlaStatus.Overdue
+                    : SlaStatus.OnTrack;
+            }
+        }
+
         public  Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
         {
             if (string.IsNullOrWhiteSpace(title))

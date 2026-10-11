@@ -804,5 +804,115 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Null(ticket.RemainingSlaTime);
         }
+
+        [Fact]
+        public void SlaStatus_NewCriticalTicket_ShouldBeOnTrack()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            // Act
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            // Assert
+            Assert.Equal(SlaStatus.OnTrack, ticket.SlaStatus);
+        }
+
+        [Fact]
+        public void SlaStatus_UnresolvedCriticalTicketAfterThreeHours_ShouldBeOverdue()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(3));
+
+            // Assert
+            Assert.Equal(SlaStatus.Overdue, ticket.SlaStatus);
+        }
+
+        [Fact]
+        public void SlaStatus_CriticalTicketResolvedWithinTarget_ShouldBeMet()
+        {
+            // Arrange 
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(1));
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(SlaStatus.Met, ticket.SlaStatus);
+        }
+
+        [Fact]
+        public void SlaStatus_CriticalTicketResolvedAfterTarget_ShouldBeBreached()
+        {
+            // Arrange 
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(3));
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(SlaStatus.Breached, ticket.SlaStatus);
+        }
+
+        [Fact]
+        public void SlaStatus_CriticalTicketResolvedExactlyAtTarget_ShouldBeMet()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(2));
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(SlaStatus.Met, ticket.SlaStatus);
+        }
     }
 }

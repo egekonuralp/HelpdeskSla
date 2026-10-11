@@ -210,6 +210,26 @@ namespace HelpdeskSla.Domain.Entities
 
             return elapsedTime > SlaTarget;
         }
+
+        public void ChangePriority(TicketPriority newPriority)
+        {
+            if (!Enum.IsDefined(newPriority))
+            {
+                throw new ArgumentOutOfRangeException(nameof(newPriority), "Geçersiz Ticket Önceliği.");
+            }
+
+            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
+            {
+                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın önceliği değiştirilemez.");
+            }
+
+            if (Priority == newPriority)
+            {
+                return;
+            }
+
+            Priority = newPriority;
+        }
     }
 }
 

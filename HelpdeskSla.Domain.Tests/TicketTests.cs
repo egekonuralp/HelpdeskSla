@@ -914,5 +914,140 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(SlaStatus.Met, ticket.SlaStatus);
         }
+
+        [Fact]
+        public void ChangePriority_OpenTicket_ShouldUpdatePriorityAndSlaTarget()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu yavaş çalışıyor",
+                "Uygulamada performans sorunu var",
+                TicketPriority.Medium);
+
+            // Act
+            ticket.ChangePriority(TicketPriority.Critical);
+
+            // Assert
+            Assert.Equal(TicketPriority.Critical, ticket.Priority);
+            Assert.Equal(TimeSpan.FromHours(2), ticket.SlaTarget);
+        }
+
+        [Fact]
+        public void ChangePriority_ResolvedTicket_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+            var priority = ticket.Priority;
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                ticket.ChangePriority(TicketPriority.Critical);
+            });
+
+            // Assert
+            Assert.Equal(priority, ticket.Priority);
+            Assert.Equal(TimeSpan.FromHours(12), ticket.SlaTarget);
+        }
+
+        [Fact]
+        public void ChangePriority_InvalidPriority_ShouldThrowArgumentOutOfRangeException()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            var originalPriority = ticket.Priority;
+
+            // Act
+            Assert.Throws<ArgumentOutOfRangeException>(() =>           
+                ticket.ChangePriority((TicketPriority)999));
+
+            // Assert
+            Assert.Equal(originalPriority, ticket.Priority);
+        }
+
+        [Fact]
+        public void ChangePriority_SamePriority_ShouldNotChangeTicket()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            var createTime = ticket.CreatedAt;
+
+            // Act
+            ticket.ChangePriority(TicketPriority.Medium);
+
+            // Assert
+            Assert.Equal(TicketPriority.Medium, ticket.Priority);
+            Assert.Equal(createTime, ticket.CreatedAt);
+        }
+
+        [Fact]
+        public void ChangePriority_MediumToCritical_ShouldUpdateSlaDeadline()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Medium,
+                fakeTime);
+
+            // Act
+            ticket.ChangePriority(TicketPriority.Critical);
+
+            // Assert
+            var expectedDeadline = startTime.AddHours(2);
+
+            Assert.Equal(expectedDeadline, ticket.SlaDeadline);
+            Assert.Equal(startTime, ticket.CreatedAt);
+        }
+
+        [Fact]
+        public void ChangePriority_ClosedTicket_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+            ticket.Close();
+
+            var priority = ticket.Priority;
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() => 
+                ticket.ChangePriority(TicketPriority.Critical));
+
+            // Assert
+            Assert.Equal(priority, ticket.Priority);
+        }
+
+        [Fact]
+        public void ChangePriority_ToCriticalAfterFiveHours_ShouldBecomeOverdue()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Medium,
+                fakeTime);
+
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(5));
+            Assert.Equal(SlaStatus.OnTrack, ticket.SlaStatus);
+            ticket.ChangePriority(TicketPriority.Critical);
+
+            // Assert
+            Assert.Equal(SlaStatus.Overdue, ticket.SlaStatus);
+        }
     }
 }

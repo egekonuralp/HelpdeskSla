@@ -1198,18 +1198,21 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Null(ticket.ResolvedAt);
         }
 
-        [Fact]
-        public void Assign_InvalidUserId_ShouldThrowAndPreserveState()
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-50)]
+        public void Assign_InvalidUserId_ShouldThrowAndPreserveState(int userId)
         {
             // Arrange
             var ticket = new Ticket(
-                "Sunucu çalışmıyor",
-                "Sunucuya erişilemiyor",
-                TicketPriority.Critical);
+                "İnternet çalışmıyor",
+                "Bağlantı problemi",
+                TicketPriority.Medium);
 
             // Act
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                ticket.Assign(0));
+                ticket.Assign(userId));
 
             // Assert
             Assert.Equal(TicketStatus.Open, ticket.Status);
@@ -1285,6 +1288,20 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal(priority, ticket.Priority);
             Assert.Equal(TicketStatus.Resolved, ticket.Status);
             Assert.Equal(resolvedAt, ticket.ResolvedAt);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(4)]
+        [InlineData(100)]
+        public void Constructor_InvalidPriority_ShouldThrow(int priorityValue)
+        {        
+            // Arrange
+            var priority = (TicketPriority)priorityValue;
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new Ticket("Başlık", "Açıklama", priority));
         }
     }
 }

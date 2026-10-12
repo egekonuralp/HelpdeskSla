@@ -1,33 +1,14 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using HelpdeskSla.Domain.Enums;
+using Xunit;
 
 namespace HelpdeskSla.Domain.Tests.TestData;
 
-public class SlaBreachTestData : IEnumerable<object[]>
+public class SlaBreachTestData : TheoryData<TimeSpan, bool>
 {
-    public IEnumerator<object[]> GetEnumerator()
+    public SlaBreachTestData()
     {
-        yield return new object[]
-        {
-            TimeSpan.FromHours(1),
-            false
-        };
-
-        yield return new object[]
-        {
-            TimeSpan.FromHours(2),
-            false
-        };
-
-        yield return new object[]
-        {
-            TimeSpan.FromHours(3),
-            true
-        };
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
+        Add(TimeSpan.FromHours(1), false);
+        Add(TimeSpan.FromHours(2), false);
+        Add(TimeSpan.FromHours(3), true);
     }
 }

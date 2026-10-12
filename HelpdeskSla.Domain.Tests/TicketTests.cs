@@ -35,6 +35,28 @@ namespace HelpdeskSla.Domain.Tests
             return ticket;
         }
 
+        public static IEnumerable<object[]> SlaTargetTestData => new List<object[]>
+        {
+            new object[] { TicketPriority.Low, 24 },
+            new object[] { TicketPriority.Medium, 12 },
+            new object[] { TicketPriority.High, 8 },
+            new object[] { TicketPriority.Critical, 2 }
+        };
+
+        public static IEnumerable<object[]> ChangePriorityTestData => new List<object[]>
+        {
+            new object[] { TicketPriority.Low, 24 },
+            new object[] { TicketPriority.High, 8 },
+            new object[] { TicketPriority.Critical, 2 }
+        };
+
+        public static IEnumerable<object[]> SlaBreachedTestData => new List<object[]>
+        {
+            new object[] { TimeSpan.FromHours(1), false },
+            new object[] { TimeSpan.FromHours(2), false },
+            new object[] { TimeSpan.FromHours(3), true }
+        };
+
         [Fact]
         public void Constructor_ValidData_ShouldCreateOpenTicket()
         {
@@ -1302,6 +1324,67 @@ namespace HelpdeskSla.Domain.Tests
             // Act & Assert
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new Ticket("Başlık", "Açıklama", priority));
+        }
+
+        [Theory]
+        [MemberData(nameof(SlaTargetTestData))]
+        public void SlaTarget_ShouldMatchPriority(TicketPriority priority, int expectedHours)
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                priority);
+
+            // Act
+            var actualTarget = ticket.SlaTarget;
+
+            // Assert
+            Assert.Equal(TimeSpan.FromHours(expectedHours), actualTarget);
+        }
+
+        [Theory]
+        [MemberData(nameof(ChangePriorityTestData))]
+        public void ChangePriority_ShouldUpdateSlaTarget(TicketPriority newPriority, int expectedHours)
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Medium);
+
+            // Act
+            ticket.ChangePriority(newPriority);
+            var actualTarget = ticket.SlaTarget;
+
+            // Assert
+            Assert.Equal(newPriority, ticket.Priority);
+            Assert.Equal(TimeSpan.FromHours(expectedHours), actualTarget);
+        }
+
+        [Theory]
+        [MemberData(nameof(SlaBreachedTestData))]
+        public void IsSlaBreached_ShouldMatchResolutionTime(TimeSpan resolutionDuration, bool expectedBreach)
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 10, 11, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Critical,
+                fakeTime);
+
+            ticket.Assign(5);
+            ticket.StartProgress();
+
+            // Act
+            fakeTime.Advance(resolutionDuration);
+            ticket.Resolve();
+
+            // Assert
+            Assert.Equal(expectedBreach, ticket.IsSlaBreached);
         }
     }
 }

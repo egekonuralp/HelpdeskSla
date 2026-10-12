@@ -1,31 +1,14 @@
 ﻿using HelpdeskSla.Domain.Enums;
-using System.Collections;
-using System.Collections.Generic;
+using Xunit;
 
 namespace HelpdeskSla.Domain.Tests.TestData;
 
-public class ChangePriorityTestData : IEnumerable<object[]>
+public class ChangePriorityTestData : TheoryData<TicketPriority, int>
 {
-    public IEnumerator<object[]> GetEnumerator()
+    public ChangePriorityTestData()
     {
-        yield return new object[]
-        {
-            TicketPriority.Low, 24
-        };
-
-        yield return new object[]
-        {
-            TicketPriority.High, 8
-        };
-
-        yield return new object[]
-        {
-            TicketPriority.Critical, 2
-        };
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
+        Add(TicketPriority.Low, 24);
+        Add(TicketPriority.High, 8);
+        Add(TicketPriority.Critical, 2);
     }
 }

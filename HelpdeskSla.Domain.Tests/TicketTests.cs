@@ -1,6 +1,7 @@
 ﻿using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using Microsoft.Extensions.Time.Testing;
+using HelpdeskSla.Domain.Tests.TestData;
 using System;
 using Xunit;
 
@@ -41,20 +42,6 @@ namespace HelpdeskSla.Domain.Tests
             new object[] { TicketPriority.Medium, 12 },
             new object[] { TicketPriority.High, 8 },
             new object[] { TicketPriority.Critical, 2 }
-        };
-
-        public static IEnumerable<object[]> ChangePriorityTestData => new List<object[]>
-        {
-            new object[] { TicketPriority.Low, 24 },
-            new object[] { TicketPriority.High, 8 },
-            new object[] { TicketPriority.Critical, 2 }
-        };
-
-        public static IEnumerable<object[]> SlaBreachedTestData => new List<object[]>
-        {
-            new object[] { TimeSpan.FromHours(1), false },
-            new object[] { TimeSpan.FromHours(2), false },
-            new object[] { TimeSpan.FromHours(3), true }
         };
 
         [Fact]
@@ -1344,7 +1331,7 @@ namespace HelpdeskSla.Domain.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ChangePriorityTestData))]
+        [ClassData(typeof(ChangePriorityTestData))]
         public void ChangePriority_ShouldUpdateSlaTarget(TicketPriority newPriority, int expectedHours)
         {
             // Arrange
@@ -1363,7 +1350,7 @@ namespace HelpdeskSla.Domain.Tests
         }
 
         [Theory]
-        [MemberData(nameof(SlaBreachedTestData))]
+        [ClassData(typeof(SlaBreachTestData))]
         public void IsSlaBreached_ShouldMatchResolutionTime(TimeSpan resolutionDuration, bool expectedBreach)
         {
             // Arrange

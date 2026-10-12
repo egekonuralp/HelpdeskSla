@@ -1179,5 +1179,112 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(desc, ticket.Description);
         }
+
+        [Fact]
+        public void Resolve_OpenTicket_ShouldThrowAndPreserveState()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Critical);
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() =>
+                ticket.Resolve());
+
+            // Assert
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void Assign_InvalidUserId_ShouldThrowAndPreserveState()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Critical);
+
+            // Act
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                ticket.Assign(0));
+
+            // Assert
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void StartProgress_OpenTicket_ShouldThrowAndPreserveState()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Critical);
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() => 
+                ticket.StartProgress());
+
+            // Assert
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void WaitForCustomer_AssignedTicket_ShouldThrowAndPreserveState()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.Critical);
+
+            ticket.Assign(5);
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() => 
+                ticket.WaitForCustomer());
+
+            // Assert
+            Assert.Equal(TicketStatus.Assigned, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void Close_InProgressTicket_ShouldThrowAndPreserveState()
+        {
+            // Arrange
+            var ticket = CreateInProgressTicket();
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() =>
+                ticket.Close());
+
+            // Assert
+            Assert.Equal(TicketStatus.InProgress, ticket.Status);
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void ChangePriority_ResolvedTicket_ShouldThrowAndPreservePriority()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+            var priority = TicketPriority.Medium;
+            var resolvedAt = ticket.ResolvedAt;
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() => 
+                ticket.ChangePriority(TicketPriority.Critical));
+
+            // Assert
+            Assert.Equal(priority, ticket.Priority);
+            Assert.Equal(TicketStatus.Resolved, ticket.Status);
+            Assert.Equal(resolvedAt, ticket.ResolvedAt);
+        }
     }
 }

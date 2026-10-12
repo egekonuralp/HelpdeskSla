@@ -1373,5 +1373,79 @@ namespace HelpdeskSla.Domain.Tests
             // Assert
             Assert.Equal(expectedBreach, ticket.IsSlaBreached);
         }
+
+        [Fact]
+        public void Assign_ZeroUserId_ShouldThrowWithCorrectParamName()
+        {
+            // Arrange 
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.High);
+
+            // Act
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => 
+                ticket.Assign(0));
+
+            // Assert
+            Assert.Equal("userId", exception.ParamName);
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.AssignedUserId);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void Constructor_InvalidTitle_ShouldThrowWithCorrectParamName(string invalidTitle)
+        {
+            // Arrange
+            var description = "Sunucuya erişilemiyor";
+            var priority = TicketPriority.High;
+
+            // Act
+            var exception = Assert.Throws<ArgumentException>(() =>
+                new Ticket(invalidTitle, description, priority));
+
+            // Assert
+            Assert.Equal("title", exception.ParamName);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void Constructor_InvalidDescription_ShouldThrowWithCorrectParamName(string invalidDescription)
+        {
+            // Arrange
+            var title = "Sunucu çalışmıyor";
+            var priority = TicketPriority.Critical;
+
+            // Act
+            var exception = Assert.Throws<ArgumentException>(() => 
+                new Ticket(title, invalidDescription, priority));
+
+            // Assert
+            Assert.Equal("description", exception.ParamName);
+        }
+
+        [Fact]
+        public void UpdateTitle_EmptyTitle_ShouldThrowWithCorrectMessage()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.High);
+
+            var originalTitle = ticket.Title;
+
+            // Act
+            var exception = Assert.Throws<ArgumentException>(() =>
+                ticket.UpdateTitle(""));
+
+            // Assert
+            Assert.Equal("newTitle", exception.ParamName);
+            Assert.Contains("Ticket başlığı boş olamaz.", exception.Message);
+            Assert.Equal(originalTitle, ticket.Title);
+        }
     }
 }

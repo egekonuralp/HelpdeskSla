@@ -132,6 +132,14 @@ namespace HelpdeskSla.Domain.Entities
             CreatedAt = _timeProvider.GetUtcNow();
         }
 
+        private void EnsureTicketIsEditable(string errorMessage)
+        {
+            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
+            {
+                throw new InvalidOperationException(errorMessage);
+            }
+        }
+
         public void Close()
         {
             if (Status != TicketStatus.Resolved)
@@ -218,10 +226,7 @@ namespace HelpdeskSla.Domain.Entities
                 throw new ArgumentOutOfRangeException(nameof(newPriority), "Geçersiz Ticket Önceliği.");
             }
 
-            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
-            {
-                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın önceliği değiştirilemez.");
-            }
+            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın önceliği değiştirilemez.");
 
             if (Priority == newPriority)
             {
@@ -238,10 +243,7 @@ namespace HelpdeskSla.Domain.Entities
                 throw new ArgumentException("Ticket başlığı boş olamaz.", nameof(newTitle));
             }
 
-            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
-            {
-                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın başlığı değiştirilemez.");
-            }
+            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın başlığı değiştirilemez.");
 
             if (Title == newTitle)
             {
@@ -258,10 +260,7 @@ namespace HelpdeskSla.Domain.Entities
                 throw new ArgumentException("Ticket açıklaması boş olamaz.", nameof(newDescription));
             }
 
-            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
-            {
-                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın açıklaması değiştirilemez.");
-            }
+            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın açıklaması değiştirilemez.");
 
             if (Description == newDescription)
             {

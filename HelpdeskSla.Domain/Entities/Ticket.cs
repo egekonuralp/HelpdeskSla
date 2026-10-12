@@ -1,9 +1,4 @@
 ﻿using HelpdeskSla.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HelpdeskSla.Domain.Entities
 {
@@ -45,7 +40,7 @@ namespace HelpdeskSla.Domain.Entities
             get
             {
                 return Priority switch
-                { 
+                {
                     TicketPriority.Low => TimeSpan.FromHours(24),
                     TicketPriority.Medium => TimeSpan.FromHours(12),
                     TicketPriority.High => TimeSpan.FromHours(8),
@@ -106,21 +101,14 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public  Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
+        public Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
         {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                throw new ArgumentException("Ticket Başlığı Boş Olamaz !!! ", nameof(title));
-            }
-
-            if (string.IsNullOrWhiteSpace(description))
-            {
-                throw new ArgumentException("Ticket Açıklaması Boş Olamaz !!! ", nameof(description));
-            }
+            EnsureNotEmpty(title, nameof(title), "Ticket başlığı boş olamaz.");
+            EnsureNotEmpty(description, nameof(description), "Ticket açıklaması boş olamaz.");
 
             if (!Enum.IsDefined(priority))
             {
-                throw new ArgumentOutOfRangeException(nameof(priority), "Geçersiz Ticket Önceliği");
+                throw new ArgumentOutOfRangeException(nameof(priority), "Geçersiz Ticket önceliği.");
             }
 
             _timeProvider = timeProvider ?? TimeProvider.System;
@@ -128,8 +116,16 @@ namespace HelpdeskSla.Domain.Entities
             Title = title;
             Description = description;
             Priority = priority;
-            Status = TicketStatus.Open;         
+            Status = TicketStatus.Open;
             CreatedAt = _timeProvider.GetUtcNow();
+        }
+
+        private static void EnsureNotEmpty(string? value, string parameterName, string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException(errorMessage, parameterName);
+            }
         }
 
         private void EnsureTicketIsEditable(string errorMessage)
@@ -140,26 +136,16 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public void Close()
-        {
-            if (Status != TicketStatus.Resolved)
-            {
-                throw new InvalidOperationException("Ticket'ın Kapatılabilmesi İçin Önce Resolved Durumunda Olması Gerekir.");
-            }
-
-            Status = TicketStatus.Closed;
-        }
-
         public void Assign(int userId)
         {
             if (Status != TicketStatus.Open)
             {
-                throw new InvalidOperationException("Yalnızca Open Durumundaki Ticket Atanabilir.");
+                throw new InvalidOperationException("Yalnızca Open durumundaki Ticket atanabilir.");
             }
 
             if (userId <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(userId), "Kullanıcı ID'si Sıfırdan Büyük Olmalı.");
+                throw new ArgumentOutOfRangeException(nameof(userId), "Kullanıcı ID'si sıfırdan büyük olmalı.");
             }
 
             AssignedUserId = userId;
@@ -170,7 +156,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.Assigned)
             {
-                throw new InvalidOperationException("Yalnızca Assigned Durumundaki Ticket Üzerinde Çalışmaya Başlanabilir !");
+                throw new InvalidOperationException("Yalnızca Assigned durumundaki Ticket üzerinde çalışmaya başlanabilir.");
             }
 
             Status = TicketStatus.InProgress;
@@ -207,6 +193,16 @@ namespace HelpdeskSla.Domain.Entities
             ResolvedAt = _timeProvider.GetUtcNow();
         }
 
+        public void Close()
+        {
+            if (Status != TicketStatus.Resolved)
+            {
+                throw new InvalidOperationException("Ticket'ın kapatılabilmesi için önce Resolved durumunda olması gerekir.");
+            }
+
+            Status = TicketStatus.Closed;
+        }
+
         public bool IsCurrentlyOverdue()
         {
             if (ResolvedAt != null)
@@ -223,7 +219,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (!Enum.IsDefined(newPriority))
             {
-                throw new ArgumentOutOfRangeException(nameof(newPriority), "Geçersiz Ticket Önceliği.");
+                throw new ArgumentOutOfRangeException(nameof(newPriority), "Geçersiz Ticket önceliği.");
             }
 
             EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın önceliği değiştirilemez.");
@@ -238,11 +234,7 @@ namespace HelpdeskSla.Domain.Entities
 
         public void UpdateTitle(string newTitle)
         {
-            if (string.IsNullOrWhiteSpace(newTitle))
-            {
-                throw new ArgumentException("Ticket başlığı boş olamaz.", nameof(newTitle));
-            }
-
+            EnsureNotEmpty(newTitle, nameof(newTitle), "Ticket başlığı boş olamaz.");
             EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın başlığı değiştirilemez.");
 
             if (Title == newTitle)
@@ -255,11 +247,7 @@ namespace HelpdeskSla.Domain.Entities
 
         public void UpdateDescription(string newDescription)
         {
-            if (string.IsNullOrWhiteSpace(newDescription))
-            {
-                throw new ArgumentException("Ticket açıklaması boş olamaz.", nameof(newDescription));
-            }
-
+            EnsureNotEmpty(newDescription, nameof(newDescription), "Ticket açıklaması boş olamaz.");
             EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın açıklaması değiştirilemez.");
 
             if (Description == newDescription)
@@ -271,4 +259,3 @@ namespace HelpdeskSla.Domain.Entities
         }
     }
 }
-

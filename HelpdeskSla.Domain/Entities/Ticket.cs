@@ -230,6 +230,46 @@ namespace HelpdeskSla.Domain.Entities
 
             Priority = newPriority;
         }
+
+        public void UpdateTitle(string newTitle)
+        {
+            if (string.IsNullOrWhiteSpace(newTitle))
+            {
+                throw new ArgumentException("Ticket başlığı boş olamaz.", nameof(newTitle));
+            }
+
+            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
+            {
+                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın başlığı değiştirilemez.");
+            }
+
+            if (Title == newTitle)
+            {
+                return;
+            }
+
+            Title = newTitle;
+        }
+
+        public void UpdateDescription(string newDescription)
+        {
+            if (string.IsNullOrWhiteSpace(newDescription))
+            {
+                throw new ArgumentException("Ticket açıklaması boş olamaz.", nameof(newDescription));
+            }
+
+            if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
+            {
+                throw new InvalidOperationException("Çözülmüş veya kapatılmış Ticket'ın açıklaması değiştirilemez.");
+            }
+
+            if (Description == newDescription)
+            {
+                return;
+            }
+
+            Description = newDescription;
+        }
     }
 }
 

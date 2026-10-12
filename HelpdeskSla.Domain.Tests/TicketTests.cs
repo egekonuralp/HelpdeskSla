@@ -1,6 +1,7 @@
 ﻿using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using Microsoft.Extensions.Time.Testing;
+using System;
 using Xunit;
 
 namespace HelpdeskSla.Domain.Tests
@@ -1048,6 +1049,135 @@ namespace HelpdeskSla.Domain.Tests
 
             // Assert
             Assert.Equal(SlaStatus.Overdue, ticket.SlaStatus);
+        }
+
+        [Fact]
+        public void UpdateTitle_OpenTicket_ShouldUpdateTitle()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Üretim sunucusuna erişilemiyor",
+                TicketPriority.Medium);
+
+            var originalCreatedAt = ticket.CreatedAt;
+            var originalDeadline = ticket.SlaDeadline;
+
+            // Act
+            ticket.UpdateTitle("İnternet tamamen kesildi.");
+
+            // Assert
+            Assert.Equal("İnternet tamamen kesildi.", ticket.Title);
+            Assert.Equal(originalCreatedAt, ticket.CreatedAt);
+            Assert.Equal(originalDeadline, ticket.SlaDeadline);
+        }
+
+        [Fact]
+        public void UpdateTitle_ResolvedTicket_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+            var title = ticket.Title;
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() => 
+                ticket.UpdateTitle("Yeni başlık"));
+
+            // Assert
+            Assert.Equal(title, ticket.Title);
+        }
+
+        [Fact]
+        public void UpdateTitle_WhitespaceTitle_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            var title = ticket.Title;
+
+            // Act
+            Assert.Throws<ArgumentException>(() =>
+                ticket.UpdateTitle("   "));
+
+            // Assert
+            Assert.Equal(title, ticket.Title);
+        }
+
+        [Fact]
+        public void UpdateTitle_SameTitle_ShouldNotChangeTicket()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            var title = ticket.Title;
+            var create = ticket.CreatedAt;
+
+            // Act
+            ticket.UpdateTitle(ticket.Title);
+
+            // Assert
+            Assert.Equal(title, ticket.Title);
+            Assert.Equal(create, ticket.CreatedAt);
+        }
+
+        [Fact]
+        public void UpdateDescription_OpenTicket_ShouldUpdateDescription()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            // Act
+            ticket.UpdateDescription("Modem yeniden başlatıldı ancak sorun devam ediyor.");
+
+            // Assert
+            Assert.Equal(
+                "Modem yeniden başlatıldı ancak sorun devam ediyor.",
+                ticket.Description);
+        }
+
+        [Fact]
+        public void UpdateDescription_WhitespaceDescription_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var ticket = new Ticket(
+                "İnternet çalışmıyor",
+                "Modem bağlantısı yok",
+                TicketPriority.Medium);
+
+            var desc = ticket.Description;
+
+            // Act
+            Assert.Throws<ArgumentException>(() => 
+                ticket.UpdateDescription("   "));
+
+            // Assert
+            Assert.Equal(desc, ticket.Description);
+        }
+
+        [Fact]
+        public void UpdateDescription_ClosedTicket_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var ticket = CreateResolvedTicket();
+            var desc = ticket.Description;
+            
+            ticket.Close();
+
+            // Act
+            Assert.Throws<InvalidOperationException>(() =>
+                ticket.UpdateDescription("Yeni açıklama"));
+
+            // Assert
+            Assert.Equal(desc, ticket.Description);
         }
     }
 }

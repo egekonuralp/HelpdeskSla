@@ -9,12 +9,17 @@ namespace HelpdeskSla.Domain.Tests
 {
     public class TicketTests
     {
+        private static Ticket CreateTicket(TicketPriority priority = TicketPriority.Medium, TimeProvider? timeProvider = null)
+        {
+            return new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                priority, timeProvider);
+        }
+
         private static Ticket CreateResolvedTicket()
         {
-            var ticket = new Ticket(
-                "İnternet çalışmıyor",
-                "Modem bağlantısı yok",
-                TicketPriority.Medium);
+            var ticket = CreateTicket();
 
             ticket.Assign(5);
             ticket.StartProgress();
@@ -25,10 +30,7 @@ namespace HelpdeskSla.Domain.Tests
 
         private static Ticket CreateInProgressTicket()
         {
-            var ticket = new Ticket(
-                "İnternet çalışmıyor",
-                "Modem bağlantısı yok",
-                TicketPriority.Medium);
+            var ticket = CreateTicket();
 
             ticket.Assign(5);
             ticket.StartProgress();
@@ -1446,6 +1448,26 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal("newTitle", exception.ParamName);
             Assert.Contains("Ticket başlığı boş olamaz.", exception.Message);
             Assert.Equal(originalTitle, ticket.Title);
+        }
+
+        [Fact]
+        public void CreateTicket_WithoutPriority_ShouldUseMedium()
+        {
+            // Arrange & Act
+            var ticket = CreateTicket();
+
+            // Assert
+            Assert.Equal(TicketPriority.Medium, ticket.Priority);
+        }
+
+        [Fact]
+        public void CreateTicket_WithCriticalPriority_ShouldUseCritical()
+        {
+            // Arrange & Act
+            var ticket = CreateTicket(TicketPriority.Critical);
+
+            // Assert
+            Assert.Equal(TicketPriority.Critical, ticket.Priority);
         }
     }
 }

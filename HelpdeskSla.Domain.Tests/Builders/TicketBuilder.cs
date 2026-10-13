@@ -10,9 +10,23 @@ public class TicketBuilder
     private TicketPriority _priority = TicketPriority.Medium;
     private TimeProvider? _timeProvider = null;
     private TicketStatus _targetStatus = TicketStatus.Open;
+    
+    private void EnsureSupportedState()
+    {
+        if (_targetStatus is not (
+                TicketStatus.Open or
+                TicketStatus.Assigned or
+                TicketStatus.InProgress or
+                TicketStatus.Resolved))
+        {
+            throw new InvalidOperationException($"Desteklenmeyen Ticket Durumu: {_targetStatus}");
+        }
+    }
 
     public Ticket Build()
     {
+        EnsureSupportedState();
+
         var ticket = new Ticket(_title, _description, _priority, _timeProvider);
 
         if (_targetStatus == TicketStatus.Open)
@@ -28,14 +42,8 @@ public class TicketBuilder
         if (_targetStatus == TicketStatus.InProgress)
             return ticket;
 
-        if (_targetStatus == TicketStatus.Resolved)
-        {
-            ticket.Resolve();
-            return ticket;
-        }
-
-        throw new InvalidOperationException($"Desteklenmeyen Ticket Durumu: {_targetStatus}");
-
+        ticket.Resolve();       
+        return ticket;      
     }
 
     public TicketBuilder WithTitle(string title)

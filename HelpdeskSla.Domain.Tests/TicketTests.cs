@@ -1615,5 +1615,81 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal(5, ticket.AssignedUserId);
             Assert.Null(ticket.ResolvedAt);
         }
+
+        [Fact]
+        public void TicketBuilder_InvalidTitle_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var builder = new TicketBuilder()
+                .WithTitle("");
+
+            // Act
+            var exception = Assert.Throws<ArgumentException>(() => 
+                builder.Build());
+
+            // Assert
+            Assert.Equal("title", exception.ParamName);
+        }
+
+        [Fact]
+        public void TicketBuilder_InvalidPriority_ShouldThrowArgumentOutOfRangeException()
+        {
+            // Arrange
+            var builder = new TicketBuilder()
+                .WithPriority((TicketPriority)999);
+
+            // Act
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => 
+                builder.Build());
+
+            // Assert
+            Assert.Equal("priority", exception.ParamName);
+        }
+
+        [Fact]
+        public void TicketBuilder_InvalidDescription_ShouldThrowArgumentException()
+        {
+            // Arrange 
+            var builder = new TicketBuilder()
+                .WithDescription("   ");
+
+            // Act
+            var exception = Assert.Throws<ArgumentException>(() => 
+                builder.Build());
+
+            // Assert
+            Assert.Equal("description", exception.ParamName);
+        }
+
+        [Fact]
+        public void TicketBuilder_OpenTicket_ShouldNotAllowResolve()
+        {
+            // Arrange
+            var ticket = new TicketBuilder()
+                .Build();
+
+            // Act
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                ticket.Resolve());
+
+            // Assert
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void TicketBuilder_InvalidPriority_ShouldAlsoMatchArgumentExceptionFamily()
+        {
+            // Arrange
+            var builder = new TicketBuilder()
+                .WithPriority((TicketPriority)999);
+
+            // Act
+            var exception = Assert.ThrowsAny<ArgumentException>(() =>
+                builder.Build());
+
+            // Assert
+            Assert.Equal("priority", exception.ParamName);
+        }
     }
 }

@@ -2,6 +2,7 @@
 using HelpdeskSla.Domain.Enums;
 using Microsoft.Extensions.Time.Testing;
 using HelpdeskSla.Domain.Tests.TestData;
+using HelpdeskSla.Domain.Tests.Builders;
 using System;
 using Xunit;
 
@@ -1468,6 +1469,83 @@ namespace HelpdeskSla.Domain.Tests
 
             // Assert
             Assert.Equal(TicketPriority.Critical, ticket.Priority);
+        }
+
+        [Fact]
+        public void TicketBuilder_WithTitle_ShouldCreateTicketWithCustomTitle()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .WithTitle("Veritabanı bağlantı hatası")
+                .Build();
+
+            // Assert
+            Assert.Equal("Veritabanı bağlantı hatası", ticket.Title);
+        }
+
+        [Fact]
+        public void TicketBuilder_WithPriority_ShouldCreateTicketWithCriticalPriority()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .WithPriority(TicketPriority.Critical)
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketPriority.Critical, ticket.Priority);
+        }
+
+        [Fact]
+        public void TicketBuilder_WithFakeTimeProvider_ShouldUseFakeTime()
+        {
+            // Arrange 
+            var fakeTime = new FakeTimeProvider();
+
+            // Act
+            var ticket = new TicketBuilder()
+                .WithTimeProvider(fakeTime)
+                .Build();
+
+            // Assert
+            Assert.Equal(fakeTime.GetUtcNow(), ticket.CreatedAt);
+        }
+
+        [Fact]
+        public void TicketBuilder_CriticalTicket_ShouldBecomeOverdueAfterThreeHours()
+        {
+            // Arrange
+            var fakeTime = new FakeTimeProvider();
+
+            var ticket = new TicketBuilder()
+                .WithPriority(TicketPriority.Critical)
+                .WithTimeProvider(fakeTime)
+                .Build();
+            
+            // Act
+            fakeTime.Advance(TimeSpan.FromHours(3));
+
+            // Assert
+            Assert.True(ticket.IsCurrentlyOverdue());
+        }
+
+        [Fact]
+        public void TicketBuilder_ReusedBuilder_ShouldCreateIndependentTickets()
+        {
+            // Arrange
+            var builder = new TicketBuilder()
+                .WithPriority(TicketPriority.Critical);
+
+            // Act
+            var firstTicket = builder.Build();
+
+            builder.WithPriority(TicketPriority.Low);
+
+            var secondTicket = builder.Build();
+
+            // Assert
+            Assert.Equal(TicketPriority.Critical, firstTicket.Priority);
+            Assert.Equal(TicketPriority.Low, secondTicket.Priority);
+            Assert.NotSame(firstTicket, secondTicket);
         }
     }
 }

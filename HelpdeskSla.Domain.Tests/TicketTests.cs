@@ -1547,5 +1547,73 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal(TicketPriority.Low, secondTicket.Priority);
             Assert.NotSame(firstTicket, secondTicket);
         }
+
+        [Fact]
+        public void TicketBuilder_AsAssigned_ShouldCreateAssignedTicket()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .AsAssigned()
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketStatus.Assigned, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void TicketBuilder_AsInProgress_ShouldCreateInProgressTicket()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .AsInProgress()
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketStatus.InProgress, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+        }
+
+        [Fact]
+        public void TicketBuilder_AsResolved_ShouldCreateResolvedTicket()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .AsResolved()
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketStatus.Resolved, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+            Assert.NotNull(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void TicketBuilder_WithoutState_ShouldCreateOpenTicket()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketStatus.Open, ticket.Status);
+            Assert.Null(ticket.AssignedUserId);
+            Assert.Null(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void TicketBuilder_LastStateSelection_ShouldWin()
+        {
+            // Arrange & Act
+            var ticket = new TicketBuilder()
+                .AsResolved()
+                .AsAssigned()
+                .Build();
+
+            // Assert
+            Assert.Equal(TicketStatus.Assigned, ticket.Status);
+            Assert.Equal(5, ticket.AssignedUserId);
+            Assert.Null(ticket.ResolvedAt);
+        }
     }
 }

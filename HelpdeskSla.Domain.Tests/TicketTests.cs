@@ -10,33 +10,18 @@ namespace HelpdeskSla.Domain.Tests
 {
     public class TicketTests
     {
-        private static Ticket CreateTicket(TicketPriority priority = TicketPriority.Medium, TimeProvider? timeProvider = null)
-        {
-            return new Ticket(
-                "Sunucu çalışmıyor",
-                "Sunucuya erişilemiyor",
-                priority, timeProvider);
-        }
-
         private static Ticket CreateResolvedTicket()
         {
-            var ticket = CreateTicket();
-
-            ticket.Assign(5);
-            ticket.StartProgress();
-            ticket.Resolve();
-
-            return ticket;
+            return new TicketBuilder()
+                .AsResolved()
+                .Build();
         }
 
         private static Ticket CreateInProgressTicket()
         {
-            var ticket = CreateTicket();
-
-            ticket.Assign(5);
-            ticket.StartProgress();
-
-            return ticket;
+            return new TicketBuilder()
+                .AsInProgress()
+                .Build();
         }
 
         public static IEnumerable<object[]> SlaTargetTestData => new List<object[]>
@@ -1455,7 +1440,8 @@ namespace HelpdeskSla.Domain.Tests
         public void CreateTicket_WithoutPriority_ShouldUseMedium()
         {
             // Arrange & Act
-            var ticket = CreateTicket();
+            var ticket = new TicketBuilder()
+                .Build();
 
             // Assert
             Assert.Equal(TicketPriority.Medium, ticket.Priority);
@@ -1465,7 +1451,9 @@ namespace HelpdeskSla.Domain.Tests
         public void CreateTicket_WithCriticalPriority_ShouldUseCritical()
         {
             // Arrange & Act
-            var ticket = CreateTicket(TicketPriority.Critical);
+            var ticket = new TicketBuilder()
+                .WithPriority(TicketPriority.Critical)
+                .Build();
 
             // Assert
             Assert.Equal(TicketPriority.Critical, ticket.Priority);
@@ -1690,6 +1678,19 @@ namespace HelpdeskSla.Domain.Tests
 
             // Assert
             Assert.Equal("priority", exception.ParamName);
+        }
+
+        [Fact]
+        public void CreateResolvedTicket_ShouldPreserveExpectedState()
+        {
+            // Arrange & Act
+            var ticket = CreateResolvedTicket();
+
+            // Assert
+            Assert.Equal(TicketStatus.Resolved, ticket.Status);
+            Assert.Equal(TicketPriority.Medium, ticket.Priority);
+            Assert.Equal(5, ticket.AssignedUserId);
+            Assert.NotNull(ticket.ResolvedAt);
         }
     }
 }

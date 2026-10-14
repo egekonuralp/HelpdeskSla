@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\HelpdeskSla.Application\HelpdeskSla.Application.csproj" />
     <ProjectReference Include="..\HelpdeskSla.Domain\HelpdeskSla.Domain.csproj" />
+    <ProjectReference Include="..\HelpdeskSla.Infrastructure\HelpdeskSla.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

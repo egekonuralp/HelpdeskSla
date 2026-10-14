@@ -1,5 +1,6 @@
 ﻿using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Domain.Tests.Fakes;
 using Xunit;
 
 namespace HelpdeskSla.Domain.Tests.Services;
@@ -10,7 +11,8 @@ public class TicketServiceTests
     public void CreateTicket_ValidInputs_ShouldReturnOpenTicket()
     {
         // Arrange
-        var service = new TicketService();
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
 
         // Act
         var ticket = service.CreateTicket(
@@ -29,7 +31,8 @@ public class TicketServiceTests
     public void AssignTicket_OpenTicket_ShouldAssignUser()
     {
         // Arrange
-        var service = new TicketService();
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -48,7 +51,8 @@ public class TicketServiceTests
     public void CreateTicket_EmptyTitle_ShouldThrowArgumentException()
     {
         // Arrange 
-        var service = new TicketService();
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
 
         // Act
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -65,7 +69,8 @@ public class TicketServiceTests
     public void AssignTicket_InvalidUserId_ShouldThrowArgumentOutOfRangeException()
     {
         // Arrange
-        var service = new TicketService();
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -86,7 +91,8 @@ public class TicketServiceTests
     public void AssignTicket_AlreadyAssignedTicket_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var service = new TicketService();
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -102,5 +108,52 @@ public class TicketServiceTests
         // Assert
         Assert.Equal(TicketStatus.Assigned, ticket.Status);
         Assert.Equal(5, ticket.AssignedUserId);
+    }
+
+    [Fact]
+    public void CreateTicket_ValidInputs_ShouldAddTicketToRepository()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var service = new TicketService(repository);
+
+        // Act
+        var ticket = service.CreateTicket(
+            "Sunucu çalışmıyor",
+            "Sunucuya erişilemiyor",
+            TicketPriority.High);
+
+        // Assert
+        Assert.Single(repository.Tickets);
+        Assert.Same(ticket, repository.Tickets[0]);
+    }
+
+    [Fact]
+    public void Constructor_NullRepository_ShouldThrowArgumentNullException()
+    {
+        // Act
+        var exception = Assert.Throws<ArgumentNullException>(() => 
+            new TicketService(null!));
+
+        // Assert
+        Assert.Equal("repository", exception.ParamName);
+    }
+
+    [Fact]
+    public void CreateTicket_RepositoryThrows_ShouldPropagateException()
+    {
+        // Arrange
+        var repository = new ThrowingTicketRepository();
+        var service = new TicketService(repository);
+
+        // Act
+        var exception = Assert.Throws<InvalidOperationException>(() => 
+            service.CreateTicket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.High));
+
+        // Assert
+        Assert.Equal("Repository kayıt işlemi başarısız.", exception.Message);
     }
 }

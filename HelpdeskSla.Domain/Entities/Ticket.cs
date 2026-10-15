@@ -120,6 +120,13 @@ namespace HelpdeskSla.Domain.Entities
             CreatedAt = _timeProvider.GetUtcNow();
         }
 
+        private Ticket()
+        {
+            Title = null!;
+            Description = null!;
+            _timeProvider = TimeProvider.System;
+        }
+
         private static void EnsureNotEmpty(string? value, string parameterName, string errorMessage)
         {
             if (string.IsNullOrWhiteSpace(value))

@@ -10,4 +10,14 @@ public class ThrowingTicketRepository : ITicketRepository
         throw new InvalidOperationException(
             "Repository kayıt işlemi başarısız.");
     }
+
+    public Ticket? GetById(int id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IReadOnlyList<Ticket> GetAll()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -11,5 +11,20 @@ public class FakeTicketRepository : ITicketRepository
     {
         Tickets.Add(ticket);
     }
+
+    public Ticket? GetById(int id)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
+        return Tickets.FirstOrDefault(t => t.Id == id);
+    }
+
+    public IReadOnlyList<Ticket> GetAll()
+    {
+        return Tickets.AsReadOnly();
+    }
 }
 

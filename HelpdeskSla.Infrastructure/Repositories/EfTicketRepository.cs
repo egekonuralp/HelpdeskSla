@@ -1,6 +1,7 @@
 ﻿using HelpdeskSla.Application.Interfaces;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace HelpdeskSla.Infrastructure.Repositories;
 
@@ -22,5 +23,28 @@ public class EfTicketRepository : ITicketRepository
 
         _context.Tickets.Add(ticket);
         _context.SaveChanges();
+    }
+
+    public Ticket? GetById(int id)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
+        var savedTicket = _context.Tickets
+            .AsNoTracking()
+            .FirstOrDefault(t => t.Id == id);
+
+        return savedTicket;
+    }
+
+    public IReadOnlyList<Ticket> GetAll()
+    {
+        var tickets = _context.Tickets
+            .AsNoTracking()
+            .ToList();
+
+        return tickets;
     }
 }

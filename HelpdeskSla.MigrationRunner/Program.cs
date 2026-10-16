@@ -1,29 +1,30 @@
-﻿using HelpdeskSla.Domain.Entities;
+﻿using HelpdeskSla.Application.Interfaces;
+using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Infrastructure.Persistence;
+using HelpdeskSla.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 var connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=HelpdeskSlaDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
-var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
-    .UseSqlServer(connectionString)
-    .Options;
+var services = new ServiceCollection();
 
-using var context = new HelpdeskDbContext(options);
+services.AddDbContext<HelpdeskDbContext>(options => options.UseSqlServer(connectionString));
 
-var savedTicket = context.Tickets
-    .AsNoTracking()
-    .OrderByDescending(t => t.Id)
-    .FirstOrDefault();
+services.AddScoped<ITicketRepository, EfTicketRepository>();
 
-if (savedTicket == null)
-{
-    Console.WriteLine("Veritabanında Ticket bulunamadı.");
-    return;
-}
+services.AddScoped<TicketService>();
 
-Console.WriteLine($"Ticket Id: {savedTicket.Id}");
-Console.WriteLine($"Başlık: {savedTicket.Title}");
-Console.WriteLine($"Açıklama: {savedTicket.Description}");
-Console.WriteLine($"Öncelik: {savedTicket.Priority}");
-Console.WriteLine($"Durum: {savedTicket.Status}");
+using var serviceProvider = services.BuildServiceProvider();
+
+using var scope = serviceProvider.CreateScope();
+
+var ticketService = scope.ServiceProvider.GetRequiredService<TicketService>();
+
+var ticket = ticketService.CreateTicket(
+    "DI üzerinden oluşturulan Ticket",
+    "TicketService ve EfTicketRepository birlikte çalışıyor.",
+    TicketPriority.High);
+
+Console.WriteLine($"Ticket kaydedildi! Id: {ticket.Id}");

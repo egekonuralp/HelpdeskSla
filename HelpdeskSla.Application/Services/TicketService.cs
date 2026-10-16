@@ -27,4 +27,14 @@ public class TicketService
     {
         ticket.Assign(userId);
     }
+
+    public Ticket? GetTicketById(int id)
+    {        
+        return _repository.GetById(id);
+    }
+
+    public IReadOnlyList<Ticket> GetAllTickets()
+    {
+        return _repository.GetAll();
+    }
 }

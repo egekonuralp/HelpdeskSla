@@ -1,6 +1,8 @@
 ﻿using HelpdeskSla.Application.Services;
+using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Tests.Fakes;
+using HelpdeskSla.Infrastructure.Repositories;
 using Xunit;
 
 namespace HelpdeskSla.Domain.Tests.Services;
@@ -155,5 +157,62 @@ public class TicketServiceTests
 
         // Assert
         Assert.Equal("Repository kayıt işlemi başarısız.", exception.Message);
+    }
+
+    [Fact]
+    public void GetTicketById_NonExistingTicket_ReturnsNull()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        // Act
+        var tickets = service.GetTicketById(999);
+
+        // Assert
+        Assert.Null(tickets);
+    }
+
+    [Fact]
+    public void GetAllTickets_EmptyRepository_ReturnsEmptyList()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        // Act
+        var tickets = service.GetAllTickets();
+
+        // Assert
+        Assert.Empty(tickets);
+    }
+
+    [Fact]
+    public void GetAllTickets_WithTwoTickets_ReturnsBothTickets()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        var ticket1 = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor.",
+            TicketPriority.Low);
+
+        var ticket2 = new Ticket(
+            "İnternet Sorunu",
+            "İnternet bağlantısı kesiliyor.",
+            TicketPriority.High);
+
+        repository.Add(ticket1);
+        repository.Add(ticket2);
+
+        // Act
+        var tickets = service.GetAllTickets();
+
+        // Assert
+        Assert.Equal(2, tickets.Count);
+        Assert.Contains(tickets, t => t.Title == "Yazıcı Arızası");
+        Assert.Contains(tickets, t => t.Title == "İnternet Sorunu");
     }
 }

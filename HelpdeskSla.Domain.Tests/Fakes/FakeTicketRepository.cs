@@ -26,5 +26,10 @@ public class FakeTicketRepository : ITicketRepository
     {
         return Tickets.AsReadOnly();
     }
+
+    public Task<Ticket?> GetByIdAsync(int id)
+    {
+        return Task.FromResult(GetById(id));
+    }
 }
 

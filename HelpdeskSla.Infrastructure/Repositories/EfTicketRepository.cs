@@ -47,4 +47,18 @@ public class EfTicketRepository : ITicketRepository
 
         return tickets;
     }
+
+    public async Task<Ticket?> GetByIdAsync(int id)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
+        var ticket = _context.Tickets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        return await ticket;
+    }
 }

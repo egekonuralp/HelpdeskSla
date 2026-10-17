@@ -200,4 +200,68 @@ public class EfTicketRepositoryTests
         // Assert
         Assert.Empty(tickets);
     }
+
+    [Fact]
+    public async Task GetByIdAsync_ExistingTicket_ReturnsTicket()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        var ticket = new Ticket(
+            "Async Test",
+            "Asenkron Ticket sorgulama",
+            TicketPriority.High);
+
+        repo.Add(ticket);
+
+        // Act
+        var savedTicket = await repo.GetByIdAsync(ticket.Id);
+
+        // Assert
+        Assert.NotNull(savedTicket);
+        Assert.Equal("Async Test", savedTicket.Title);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_NonExistingTicket_ReturnsNull()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        // Act
+        var savedTicket = await repo.GetByIdAsync(999);
+
+        // Assert
+        Assert.Null(savedTicket);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task GetByIdAsync_InvalidId_ThrowsArgumentOutOfRangeException(int id)
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => 
+            repo.GetByIdAsync(id));
+
+        Assert.Equal("id", exception.ParamName);
+    }
 }

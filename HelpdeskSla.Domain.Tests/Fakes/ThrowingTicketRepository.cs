@@ -20,4 +20,9 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new NotImplementedException();
     }
+
+    public Task<Ticket?> GetByIdAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
 }

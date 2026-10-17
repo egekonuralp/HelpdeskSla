@@ -21,7 +21,7 @@ public class ThrowingTicketRepository : ITicketRepository
         throw new NotImplementedException();
     }
 
-    public Task<Ticket?> GetByIdAsync(int id)
+    public Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

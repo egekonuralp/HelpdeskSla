@@ -10,7 +10,7 @@ public interface ITicketRepository
 
     IReadOnlyList<Ticket> GetAll();
 
-    Task<Ticket?> GetByIdAsync(int id);
+    Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 }
 
 

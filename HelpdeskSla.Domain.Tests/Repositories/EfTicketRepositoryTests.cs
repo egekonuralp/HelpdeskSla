@@ -264,4 +264,23 @@ public class EfTicketRepositoryTests
 
         Assert.Equal("id", exception.ParamName);
     }
+
+    [Fact]
+    public async Task GetByIdAsync_CanceledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
+            repo.GetByIdAsync(1, cts.Token));
+    }
 }

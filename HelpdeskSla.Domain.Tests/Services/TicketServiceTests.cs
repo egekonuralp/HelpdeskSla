@@ -215,4 +215,19 @@ public class TicketServiceTests
         Assert.Contains(tickets, t => t.Title == "Yazıcı Arızası");
         Assert.Contains(tickets, t => t.Title == "İnternet Sorunu");
     }
+
+    [Fact]
+    public async Task GetTicketByIdAsync_CanceledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
+            service.GetTicketByIdAsync(1, cts.Token));
+    }
 }

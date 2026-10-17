@@ -27,8 +27,10 @@ public class InMemoryTicketRepository : ITicketRepository
         return _tickets.AsReadOnly();
     }
 
-    public Task<Ticket?> GetByIdAsync(int id)
+    public Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var ticket = GetById(id);
         
         return Task.FromResult(ticket);

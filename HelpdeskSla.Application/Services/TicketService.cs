@@ -37,4 +37,9 @@ public class TicketService
     {
         return _repository.GetAll();
     }
+
+    public Task<Ticket?> GetTicketByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return _repository.GetByIdAsync(id, cancellationToken);
+    }
 }

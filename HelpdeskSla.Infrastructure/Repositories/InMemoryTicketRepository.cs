@@ -26,4 +26,11 @@ public class InMemoryTicketRepository : ITicketRepository
     {
         return _tickets.AsReadOnly();
     }
+
+    public Task<Ticket?> GetByIdAsync(int id)
+    {
+        var ticket = GetById(id);
+        
+        return Task.FromResult(ticket);
+    }
 }

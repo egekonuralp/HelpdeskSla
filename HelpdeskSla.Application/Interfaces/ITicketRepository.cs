@@ -9,6 +9,8 @@ public interface ITicketRepository
     Ticket? GetById(int id);
 
     IReadOnlyList<Ticket> GetAll();
+
+    Task<Ticket?> GetByIdAsync(int id);
 }
 
 

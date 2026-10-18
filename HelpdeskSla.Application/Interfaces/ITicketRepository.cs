@@ -11,6 +11,10 @@ public interface ITicketRepository
     IReadOnlyList<Ticket> GetAll();
 
     Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default);
 }
 
 

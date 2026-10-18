@@ -32,5 +32,20 @@ public class FakeTicketRepository : ITicketRepository
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(GetById(id));
     }
+
+    public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(GetAll());
+    }
+
+    public Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Add(ticket);
+
+        return Task.CompletedTask;
+    }
 }
 

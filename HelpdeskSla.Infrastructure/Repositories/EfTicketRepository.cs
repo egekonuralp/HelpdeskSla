@@ -59,4 +59,22 @@ public class EfTicketRepository : ITicketRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);        
     }
+
+    public async Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Tickets
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
+    {
+        if (ticket == null)
+        {
+            throw new ArgumentNullException(nameof(ticket));
+        }
+
+        _context.Tickets.Add(ticket);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -77,4 +77,20 @@ public class EfTicketRepository : ITicketRepository
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
+        return await _context.Tickets
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -53,4 +53,18 @@ public class InMemoryTicketRepository : ITicketRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.FromResult(GetById(id));
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.CompletedTask;
+    }
 }

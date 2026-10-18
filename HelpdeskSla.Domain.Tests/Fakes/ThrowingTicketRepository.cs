@@ -35,4 +35,14 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new NotImplementedException();
     }
+
+    public Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -429,4 +429,140 @@ public class EfTicketRepositoryTests
 
         Assert.Empty(savedTickets);
     }
+
+    [Fact]
+    public async Task Tracking_ChangedTicketTitle_SavesChangesToDatabase()
+    {
+        // Arrange 
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor.",
+            TicketPriority.Low);
+
+        context.Tickets.Add(ticket);
+        await context.SaveChangesAsync();
+
+        // Act
+        var trackedTicket = await context.Tickets
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        trackedTicket.UpdateTitle("Yeni Başlık");
+        await context.SaveChangesAsync();
+
+        // Assert
+        using var newContext = new HelpdeskDbContext(options);
+
+        var savedTicket = await newContext.Tickets
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        Assert.Equal("Yeni Başlık", trackedTicket.Title);
+    }
+
+    [Fact]
+    public async Task AsNoTracking_ChangedTicketTitle_DoesNotSaveChangesToDatabase()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repository = new EfTicketRepository(context);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor",
+            TicketPriority.Medium);
+
+        context.Tickets.Add(ticket);
+        await context.SaveChangesAsync();
+
+        using var newContext = new HelpdeskDbContext(options);
+
+        var detachedTicket = await newContext.Tickets
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        // Act
+        detachedTicket.UpdateTitle("Yeni Başlık");
+        await newContext.SaveChangesAsync();
+
+        // Assert
+        using var extraContext = new HelpdeskDbContext(options);
+
+        var savedTicket = await extraContext.Tickets
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        Assert.Equal("Yazıcı Arızası", savedTicket.Title);
+    }
+
+    [Fact]
+    public async Task ChangeTracker_TracksEntityStatesCorrectly()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor",
+            TicketPriority.Medium);
+
+        // Act
+        context.Tickets.Add(ticket);
+        var state = context.Entry(ticket).State;
+
+        await context.SaveChangesAsync();
+        var stateAfterSave = context.Entry(ticket).State;
+
+        ticket.UpdateTitle("Yeni Başlık");
+        context.ChangeTracker.DetectChanges();
+        var stateAfterUpdate = context.Entry(ticket).State;
+
+        // Assert
+        Assert.Equal(EntityState.Added, state);
+        Assert.Equal(EntityState.Unchanged, stateAfterSave);
+        Assert.Equal(EntityState.Modified, stateAfterUpdate);
+    }
+
+    [Fact]
+    public async Task AsNoTracking_ReturnsDetachedEntity()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor",
+            TicketPriority.Medium);
+
+        context.Tickets.Add(ticket);
+        await context.SaveChangesAsync();
+
+        using var newContext = new HelpdeskDbContext(options);
+
+        var ticket2 = await newContext.Tickets
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        var state = newContext.Entry(ticket2).State;
+
+        // Assert
+        Assert.Equal(EntityState.Detached, state);
+    }
 }

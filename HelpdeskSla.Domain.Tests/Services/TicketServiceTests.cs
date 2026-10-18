@@ -230,4 +230,47 @@ public class TicketServiceTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
             service.GetTicketByIdAsync(1, cts.Token));
     }
+
+    [Fact]
+    public async Task CreateTicketAsync_ValidData_ReturnsCreatedTicket()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        // Act
+        var ticket = await service.CreateTicketAsync(
+            "Async Ticket",
+            "Asenkron oluşturma testi",
+            TicketPriority.High);
+
+        // Assert
+        Assert.NotNull(ticket);
+        Assert.Equal("Async Ticket", ticket.Title);
+        Assert.Equal(TicketPriority.High, ticket.Priority);
+
+        var savedTicket = Assert.Single(repository.GetAll());
+        Assert.Same(ticket, savedTicket);
+    }
+
+    [Fact]
+    public async Task CreateTicketAsync_CanceledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+        var service = new TicketService(repository);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.CreateTicketAsync(
+                "Canceled Ticket",
+                "İptal edilen kayıt testi",
+                TicketPriority.Critical,
+                cts.Token));
+
+        Assert.Empty(repository.GetAll());
+    }
 }

@@ -42,4 +42,13 @@ public class TicketService
     {
         return _repository.GetByIdAsync(id, cancellationToken);
     }
+
+    public async Task<Ticket> CreateTicketAsync(string title, string description, TicketPriority priority, CancellationToken cancellationToken = default)
+    {
+        var ticket = new Ticket(title, description, priority);
+
+        await _repository.AddAsync(ticket, cancellationToken);
+
+        return ticket; 
+    }
 }

@@ -35,4 +35,22 @@ public class InMemoryTicketRepository : ITicketRepository
         
         return Task.FromResult(ticket);
     }
+
+    public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var tickets = GetAll();
+
+        return Task.FromResult(tickets);
+    }
+
+    public Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Add(ticket);
+
+        return Task.CompletedTask;
+    }
 }

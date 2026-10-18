@@ -25,4 +25,14 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new NotImplementedException();
     }
+
+    public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

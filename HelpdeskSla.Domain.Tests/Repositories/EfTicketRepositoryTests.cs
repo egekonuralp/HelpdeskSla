@@ -283,4 +283,150 @@ public class EfTicketRepositoryTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
             repo.GetByIdAsync(1, cts.Token));
     }
+
+    [Fact]
+    public async Task GetAllAsync_WithTwoTickets_ReturnsBothTickets()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        var ticket1 = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor.",
+            TicketPriority.Low);
+
+        var ticket2 = new Ticket(
+            "İnternet Sorunu",
+            "İnternet bağlantısı kesiliyor.",
+            TicketPriority.High);
+
+        repo.Add(ticket1);
+        repo.Add(ticket2);
+
+        // Act 
+        var tickets = await repo.GetAllAsync();
+
+        // Assert
+        Assert.NotNull(tickets);
+        Assert.Equal(2, tickets.Count);
+        Assert.Contains(tickets, t => t.Title == "Yazıcı Arızası");
+        Assert.Contains(tickets, t => t.Title == "İnternet Sorunu");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_EmptyDatabase_ReturnsEmptyList()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        // Act
+        var tickets = await repo.GetAllAsync();
+
+        // Assert
+        Assert.Empty(tickets);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_CanceledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            repo.GetAllAsync(cts.Token));
+    }
+
+    [Fact]
+    public async Task AddAsync_ValidTicket_SavesTicketToDatabase()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor.",
+            TicketPriority.Low);
+
+        // Act
+        await repo.AddAsync(ticket);
+
+        // Assert
+        var savedTicket = await context.Tickets
+            .FirstOrDefaultAsync(t => t.Id == ticket.Id);
+
+        Assert.NotNull(savedTicket);
+        Assert.Equal(ticket.Title, savedTicket.Title);
+    }
+
+    [Fact]
+    public async Task AddAsync_NullTicket_ThrowsArgumentNullException()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            repo.AddAsync(null!));
+
+        Assert.Equal("ticket", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task AddAsync_CanceledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange 
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repo = new EfTicketRepository(context);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor.",
+            TicketPriority.Low);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            repo.AddAsync(ticket, cts.Token));
+
+        using var verificationContext = new HelpdeskDbContext(options);
+
+        var savedTickets = await verificationContext.Tickets
+            .AsNoTracking()
+            .ToListAsync();
+
+        Assert.Empty(savedTickets);
+    }
 }

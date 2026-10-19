@@ -295,8 +295,18 @@ public class TicketServiceTests
 
         await repository.AddAsync(ticket);
 
+        var expectedRowVersion = new byte[8]
+        {
+            1, 0, 0, 0, 0, 0, 0, 0
+        };
+
+        context.Entry(ticket)
+            .Property(t => t.RowVersion)
+            .CurrentValue = expectedRowVersion;
+        await context.SaveChangesAsync();
+
         // Act
-        var updatedTicket = await service.UpdateTicketTitleAsync(ticket.Id, "Yeni Başlık");
+        var updatedTicket = await service.UpdateTicketTitleAsync(ticket.Id, "Yeni Başlık", expectedRowVersion);
 
         // Assert
         Assert.NotNull(updatedTicket);
@@ -326,7 +336,7 @@ public class TicketServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            service.UpdateTicketTitleAsync(999, "Yeni Başlık"));
+            service.UpdateTicketTitleAsync(999, "Yeni Başlık", new byte[8]));
     }
 
     [Fact]
@@ -351,7 +361,7 @@ public class TicketServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.UpdateTicketTitleAsync(ticket.Id, ""));
+            service.UpdateTicketTitleAsync(ticket.Id, "", new byte[8]));
 
         using var verificationContext = new HelpdeskDbContext(options);
 

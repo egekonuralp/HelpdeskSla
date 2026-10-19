@@ -52,14 +52,23 @@ public class TicketService
         return ticket; 
     }
 
-    public async Task<Ticket> UpdateTicketTitleAsync(int id, string newTitle, CancellationToken cancellationToken = default)
+    public async Task<Ticket> UpdateTicketTitleAsync(int id, string newTitle, byte[] expectedRowVersion, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(expectedRowVersion);
+
+        if (expectedRowVersion.Length != 8)
+        {
+            throw new ArgumentException("RowVersion 8 byte uzunluğunda olmalıdır !!!", nameof(expectedRowVersion));
+        }
+
         var ticket = await _repository.GetByIdForUpdateAsync(id, cancellationToken);
 
         if (ticket == null)
         {
             throw new KeyNotFoundException($"Ticket bulunamadı. Id: {id}");
         }
+
+        _repository.SetOriginalRowVersion(ticket, expectedRowVersion);
 
         ticket.UpdateTitle(newTitle);
         await _repository.SaveChangesAsync(cancellationToken);

@@ -67,4 +67,9 @@ public class InMemoryTicketRepository : ITicketRepository
 
         return Task.CompletedTask;
     }
+
+    public void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion)
+    {
+        throw new NotSupportedException("Bu repository RowVersion concurrency kontrolünü desteklemiyor.");
+    }
 }

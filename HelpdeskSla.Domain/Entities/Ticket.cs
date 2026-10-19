@@ -22,6 +22,8 @@ namespace HelpdeskSla.Domain.Entities
 
         private readonly TimeProvider _timeProvider;
 
+        public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+
         public TimeSpan? ResolutionTime
         {
             get

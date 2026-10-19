@@ -19,6 +19,8 @@ public interface ITicketRepository
     Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken token = default);
+
+    void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion);
 }
 
 

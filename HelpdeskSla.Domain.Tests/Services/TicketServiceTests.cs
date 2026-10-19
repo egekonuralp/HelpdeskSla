@@ -3,6 +3,8 @@ using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Repositories;
+using HelpdeskSla.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace HelpdeskSla.Domain.Tests.Services;
@@ -272,5 +274,91 @@ public class TicketServiceTests
                 cts.Token));
 
         Assert.Empty(repository.GetAll());
+    }
+
+    [Fact]
+    public async Task UpdateTicketTitleAsync_ExistingTicket_UpdatesDatabase()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repository = new EfTicketRepository(context);
+        var service = new TicketService(repository);
+
+        var ticket = new Ticket(
+            "Eski Başlık",
+            "Başlık güncelleme testi",
+            TicketPriority.High);
+
+        await repository.AddAsync(ticket);
+
+        // Act
+        var updatedTicket = await service.UpdateTicketTitleAsync(ticket.Id, "Yeni Başlık");
+
+        // Assert
+        Assert.NotNull(updatedTicket);
+        Assert.Equal("Yeni Başlık", updatedTicket.Title);
+
+        using var newContext = new HelpdeskDbContext(options);
+
+        var savedTicket = await newContext.Tickets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == ticket.Id);
+
+        Assert.NotNull(savedTicket);
+        Assert.Equal("Yeni Başlık", savedTicket.Title);
+    }
+
+    [Fact]
+    public async Task UpdateTicketTitleAsync_NonExistingTicket_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repository = new EfTicketRepository(context);
+        var service = new TicketService(repository);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.UpdateTicketTitleAsync(999, "Yeni Başlık"));
+    }
+
+    [Fact]
+    public async Task UpdateTicketTitleAsync_EmptyTitle_ThrowsArgumentException()
+    {
+        // Arrange 
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+        var repository = new EfTicketRepository(context);
+        var service = new TicketService(repository);
+
+        var ticket = new Ticket(
+            "Eski Başlık",
+            "Başlık güncelleme testi",
+            TicketPriority.High);
+
+        await repository.AddAsync(ticket);
+        await context.SaveChangesAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpdateTicketTitleAsync(ticket.Id, ""));
+
+        using var verificationContext = new HelpdeskDbContext(options);
+
+        var savedTicket = await verificationContext.Tickets
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == ticket.Id);
+
+        Assert.Equal("Eski Başlık", savedTicket.Title);
     }
 }

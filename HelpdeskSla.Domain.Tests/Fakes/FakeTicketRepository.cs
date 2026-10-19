@@ -59,5 +59,16 @@ public class FakeTicketRepository : ITicketRepository
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
+
+    public void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        ArgumentNullException.ThrowIfNull(expectedRowVersion);
+
+        if (expectedRowVersion.Length != 8)
+        {
+            throw new ArgumentException("RowVersion 8 byte uzunluğunda olmalıdır !!!", nameof(expectedRowVersion));
+        }
+    }
 }
 

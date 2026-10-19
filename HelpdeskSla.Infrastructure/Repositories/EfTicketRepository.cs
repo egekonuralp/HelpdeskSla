@@ -1,4 +1,5 @@
-﻿using HelpdeskSla.Application.Interfaces;
+﻿using HelpdeskSla.Application.Exceptions;
+using HelpdeskSla.Application.Interfaces;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +92,28 @@ public class EfTicketRepository : ITicketRepository
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new TicketConcurrencyException("Ticket başka bir kullanıcı tarafından güncellendi", ex);
+        }
+    }
+
+    public void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        ArgumentNullException.ThrowIfNull(expectedRowVersion);
+
+        if (expectedRowVersion.Length != 8)
+        {
+            throw new ArgumentException("RowVersion 8 byte uzunluğunda olmalıdır !!!", nameof(expectedRowVersion));
+        }
+
+        _context.Entry(ticket)
+            .Property(t => t.RowVersion)
+            .OriginalValue = expectedRowVersion;
     }
 }

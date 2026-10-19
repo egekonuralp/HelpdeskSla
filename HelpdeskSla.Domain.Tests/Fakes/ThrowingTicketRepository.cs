@@ -45,4 +45,9 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new NotImplementedException();
     }
+
+    public void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion)
+    {
+        throw new NotSupportedException("Bu repository RowVersion concurrency kontrolünü desteklemiyor.");
+    }
 }

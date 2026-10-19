@@ -1,4 +1,6 @@
-﻿using HelpdeskSla.Domain.Entities;
+﻿using HelpdeskSla.Application.Exceptions;
+using HelpdeskSla.Application.Services;
+using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
@@ -564,5 +566,191 @@ public class EfTicketRepositoryTests
 
         // Assert
         Assert.Equal(EntityState.Detached, state);
+    }
+
+    [Fact]
+    public async Task ConcurrentUpdates_SecondSave_ThrowsConcurrencyException()
+    {
+        var databaseName = $"HelpdeskSlaConcurrencyTest_{Guid.NewGuid():N}";
+        var connectionString = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        try
+        {
+            await using (var setupContext = new HelpdeskDbContext(options))
+            {
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var ticket = new Ticket(
+                    "Eski Başlık",
+                    "Concurrency Testi",
+                    TicketPriority.High);
+
+                setupContext.Tickets.Add(ticket);
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using var contextA = new HelpdeskDbContext(options);
+            await using var contextB = new HelpdeskDbContext(options);
+
+            var ticketA = await contextA.Tickets.SingleAsync();
+            var ticketB = await contextB.Tickets.SingleAsync();
+
+            ticketA.UpdateTitle("Personel A Güncelledi");
+            await contextA.SaveChangesAsync();
+
+            ticketB.UpdateTitle("Personel B Güncelledi");
+
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+                contextB.SaveChangesAsync());
+
+            await using var verificationContext = new HelpdeskDbContext(options);
+
+            var savedTicket = await verificationContext.Tickets
+                .AsNoTracking()
+                .SingleAsync();
+
+            Assert.Equal("Personel A Güncelledi", savedTicket.Title);
+        }
+        finally
+        {
+            await using var cleanupContext = new HelpdeskDbContext(options);
+            await cleanupContext.Database.EnsureDeletedAsync();
+        }
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_ConcurrencyConflict_ThrowsTicketConcurrencyException()
+    {
+        // Arrange
+        var databaseName = $"HelpdeskSlaConcurrencyTest_{Guid.NewGuid():N}";
+        var connectionString = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        try
+        {
+            await using (var setupContext = new HelpdeskDbContext(options))
+            {
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var ticket = new Ticket(
+                    "Eski Başlık",
+                    "Concurrency Testi",
+                    TicketPriority.High);
+
+                setupContext.Tickets.Add(ticket);
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using var contextA = new HelpdeskDbContext(options);
+            await using var contextB = new HelpdeskDbContext(options);
+
+            var ticketA = await contextA.Tickets.SingleAsync();
+            var ticketB = await contextB.Tickets.SingleAsync();
+
+            ticketA.UpdateTitle("Personel A Güncelledi");
+            await contextA.SaveChangesAsync();
+
+            ticketB.UpdateTitle("Personel B Güncelledi");
+            var repositoryB = new EfTicketRepository(contextB);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<TicketConcurrencyException>(() =>
+                repositoryB.SaveChangesAsync());
+
+            Assert.IsType<DbUpdateConcurrencyException>(exception.InnerException);
+
+            await using var verificationContext = new HelpdeskDbContext(options);
+
+            var savedTicket = await verificationContext.Tickets
+                .AsNoTracking()
+                .SingleAsync();
+
+            Assert.Equal("Personel A Güncelledi", savedTicket.Title);
+        }
+        finally
+        {
+            await using var cleanupContext = new HelpdeskDbContext(options);
+            await cleanupContext.Database.EnsureDeletedAsync();
+        }
+    }
+
+    [Fact]
+    public async Task UpdateTicketTitleAsync_StaleRowVersion_ThrowsTicketConcurrencyException()
+    {
+        // Arrange
+        var databaseName = $"HelpdeskSlaConcurrencyTest_{Guid.NewGuid():N}";
+        var connectionString = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        int ticketId;
+
+        try
+        {
+            await using (var setupContext = new HelpdeskDbContext(options))
+            {
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var ticket = new Ticket(
+                    "Eski Başlık",
+                    "Concurrency Testi",
+                    TicketPriority.High);
+
+                setupContext.Tickets.Add(ticket);
+                await setupContext.SaveChangesAsync();
+
+                ticketId = ticket.Id;
+            }
+
+            byte[] oldRowVersion;
+
+            await using (var readContext = new HelpdeskDbContext(options))
+            {
+                var ticket = await readContext.Tickets.SingleAsync();
+
+                oldRowVersion = ticket.RowVersion.ToArray();
+            }
+
+            await using (var otherContext = new HelpdeskDbContext(options))
+            {
+                var ticket = await otherContext.Tickets.SingleAsync();
+
+                ticket.UpdateTitle("Personel B Güncelledi");
+
+                await otherContext.SaveChangesAsync();
+            }
+
+            await using (var updateContext = new HelpdeskDbContext(options))
+            {
+                var repository = new EfTicketRepository(updateContext);
+                var service = new TicketService(repository);
+
+                await Assert.ThrowsAsync<TicketConcurrencyException>(() =>
+                    service.UpdateTicketTitleAsync(ticketId, "Personel A Güncelledi", oldRowVersion));
+            }
+
+            await using (var verificationContext = new HelpdeskDbContext(options))
+            {
+                var savedTicket = await verificationContext.Tickets
+                    .AsNoTracking()
+                    .SingleAsync();
+
+                Assert.Equal("Personel B Güncelledi", savedTicket.Title);
+            }
+        }
+        finally
+        {
+            await using var cleanupContext = new HelpdeskDbContext(options);
+            await cleanupContext.Database.EnsureDeletedAsync();
+        }
     }
 }

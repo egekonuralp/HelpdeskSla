@@ -51,4 +51,19 @@ public class TicketService
 
         return ticket; 
     }
+
+    public async Task<Ticket> UpdateTicketTitleAsync(int id, string newTitle, CancellationToken cancellationToken = default)
+    {
+        var ticket = await _repository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (ticket == null)
+        {
+            throw new KeyNotFoundException($"Ticket bulunamadı. Id: {id}");
+        }
+
+        ticket.UpdateTitle(newTitle);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        return ticket;
+    }
 }

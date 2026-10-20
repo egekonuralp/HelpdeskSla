@@ -753,4 +753,136 @@ public class EfTicketRepositoryTests
             await cleanupContext.Database.EnsureDeletedAsync();
         }
     }
+
+    [Fact]
+    public async Task UpdateTicketTitleAsync_ValidRowVersion_UpdatesTicketAndCreatesAuditLog()
+    {
+        // Arrange
+        var databaseName = $"HelpdeskSlaConcurrencyTest_{Guid.NewGuid():N}";
+        var connectionString = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        int ticketId;
+        byte[] oldRowVersion;
+
+        try
+        {
+            await using (var setupContext = new HelpdeskDbContext(options))
+            {
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var ticket = new Ticket(
+                    "Eski Başlık",
+                    "Test Amaçlı Test",
+                    TicketPriority.High);
+
+                setupContext.Tickets.Add(ticket);
+                await setupContext.SaveChangesAsync();
+
+                ticketId = ticket.Id;
+                oldRowVersion = ticket.RowVersion.ToArray();
+            }
+
+            // Act
+            await using (var updateContext = new HelpdeskDbContext(options))
+            {
+                var repository = new EfTicketRepository(updateContext);
+                var service = new TicketService(repository);
+
+                await service.UpdateTicketTitleAsync(ticketId, "Yeni Başlık", oldRowVersion);
+            }
+
+            // Assert
+            await using (var verificationContext = new HelpdeskDbContext(options))
+            {
+                var savedTicket = await verificationContext.Tickets
+                    .AsNoTracking()
+                    .SingleAsync(x => x.Id == ticketId);
+
+                var savedAuditLog = await verificationContext.TicketAuditLogs
+                    .AsNoTracking()
+                    .SingleAsync();
+
+                Assert.Equal("Yeni Başlık", savedTicket.Title);
+                Assert.Equal(ticketId, savedAuditLog.TicketId);
+                Assert.Equal("Eski Başlık", savedAuditLog.OldTitle);
+                Assert.Equal("Yeni Başlık", savedAuditLog.NewTitle);
+            }
+        }
+        finally
+        {
+            await using var cleanupContext = new HelpdeskDbContext(options);
+            await cleanupContext.Database.EnsureDeletedAsync();
+        }
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_InvalidAuditLogForeignKey_RollsBackTicketUpdate()
+    {
+        // Arrange
+        var databaseName = $"HelpdeskSlaTransactionTest_{Guid.NewGuid():N}";
+        var connectionString = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        int ticketId;
+
+        try
+        {
+            await using (var setupContext = new HelpdeskDbContext(options))
+            {
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var ticket = new Ticket(
+                    "Eski Başlık",
+                    "Test Amaçlı Test",
+                    TicketPriority.High);
+
+                setupContext.Tickets.Add(ticket);
+                await setupContext.SaveChangesAsync();
+
+                ticketId = ticket.Id;
+            }
+
+            // Act
+            await using (var updateContext =  new HelpdeskDbContext(options))
+            {
+                var ticket = await updateContext.Tickets
+                    .SingleAsync(x => x.Id == ticketId);
+
+                ticket.UpdateTitle("Yeni Başlık");
+
+                var invalidAuditLog = new TicketAuditLog(int.MaxValue, "Eski Başlık", "Yeni Başlık");
+
+                updateContext.TicketAuditLogs.Add(invalidAuditLog);
+
+                await Assert.ThrowsAsync<DbUpdateException>(() =>
+                    updateContext.SaveChangesAsync());
+            }
+
+            // Assert
+            await using (var verificationContext = new HelpdeskDbContext(options))
+            {
+                var savedTicket = await verificationContext.Tickets
+                    .AsNoTracking()
+                    .SingleAsync(x => x.Id == ticketId);
+
+                var auditLogCount = await verificationContext.TicketAuditLogs
+                    .CountAsync();
+
+                Assert.Equal("Eski Başlık", savedTicket.Title);
+                Assert.Equal(0, auditLogCount);
+            }
+        }
+        finally
+        {
+            await using var cleanupContext = new HelpdeskDbContext(options);
+            await cleanupContext.Database.EnsureDeletedAsync();
+        }
+    }
 }

@@ -18,4 +18,5 @@ public class HelpdeskDbContext : DbContext
     }
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketAuditLog> TicketAuditLogs => Set<TicketAuditLog>();
 }

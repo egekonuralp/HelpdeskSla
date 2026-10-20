@@ -21,6 +21,8 @@ public interface ITicketRepository
     Task SaveChangesAsync(CancellationToken token = default);
 
     void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion);
+
+    Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default);
 }
 
 

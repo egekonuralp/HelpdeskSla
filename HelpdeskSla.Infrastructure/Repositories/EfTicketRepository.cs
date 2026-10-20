@@ -116,4 +116,11 @@ public class EfTicketRepository : ITicketRepository
             .Property(t => t.RowVersion)
             .OriginalValue = expectedRowVersion;
     }
+
+    public async Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(auditLog);
+
+        await _context.TicketAuditLogs.AddAsync(auditLog, cancellationToken);
+    }
 }

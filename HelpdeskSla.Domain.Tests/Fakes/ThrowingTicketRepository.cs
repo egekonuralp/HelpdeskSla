@@ -50,4 +50,9 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new NotSupportedException("Bu repository RowVersion concurrency kontrolünü desteklemiyor.");
     }
+
+    public Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("ThrowingTicketRepository audit log eklemeyi desteklemiyor.");
+    }
 }

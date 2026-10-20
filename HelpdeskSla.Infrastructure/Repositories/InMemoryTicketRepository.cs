@@ -72,4 +72,9 @@ public class InMemoryTicketRepository : ITicketRepository
     {
         throw new NotSupportedException("Bu repository RowVersion concurrency kontrolünü desteklemiyor.");
     }
+
+    public Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("InMemoryTicketRepository audit log eklemeyi desteklemiyor.");
+    }
 }

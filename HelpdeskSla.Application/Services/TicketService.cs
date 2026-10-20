@@ -70,7 +70,13 @@ public class TicketService
 
         _repository.SetOriginalRowVersion(ticket, expectedRowVersion);
 
+        var oldTitle = ticket.Title;
+
         ticket.UpdateTitle(newTitle);
+
+        var auditLog = new TicketAuditLog(ticket.Id, oldTitle, newTitle);
+
+        await _repository.AddAuditLogAsync(auditLog, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
         return ticket;

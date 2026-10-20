@@ -64,6 +64,46 @@ namespace HelpdeskSla.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Tickets", (string)null);
                 });
+
+            modelBuilder.Entity("HelpdeskSla.Domain.Entities.TicketAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NewTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OldTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.ToTable("TicketAuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("HelpdeskSla.Domain.Entities.TicketAuditLog", b =>
+                {
+                    b.HasOne("HelpdeskSla.Domain.Entities.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }

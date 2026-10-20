@@ -70,5 +70,12 @@ public class FakeTicketRepository : ITicketRepository
             throw new ArgumentException("RowVersion 8 byte uzunluğunda olmalıdır !!!", nameof(expectedRowVersion));
         }
     }
+
+    public Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(auditLog);
+
+        return Task.CompletedTask;
+    }
 }
 

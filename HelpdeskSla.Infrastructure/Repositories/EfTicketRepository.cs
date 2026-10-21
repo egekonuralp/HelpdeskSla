@@ -70,13 +70,11 @@ public class EfTicketRepository : ITicketRepository
 
     public async Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
-        if (ticket == null)
-        {
-            throw new ArgumentNullException(nameof(ticket));
-        }
+        ArgumentNullException.ThrowIfNull(ticket);
 
-        _context.Tickets.Add(ticket);
-        await _context.SaveChangesAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await _context.Tickets.AddAsync(ticket, cancellationToken);
     }
 
     public async Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)

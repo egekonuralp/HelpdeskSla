@@ -15,6 +15,7 @@ public class DependencyInjectionTests
         var services = new ServiceCollection();
 
         services.AddTransient<ITicketRepository, FakeTicketRepository>();
+        services.AddTransient<IUnitOfWork, FakeUnitOfWork>();
         services.AddTransient<TicketService>();
 
         using var provider = services.BuildServiceProvider();

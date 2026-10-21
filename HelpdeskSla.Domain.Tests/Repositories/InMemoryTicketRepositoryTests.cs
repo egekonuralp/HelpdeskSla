@@ -1,6 +1,7 @@
 ﻿using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Repositories;
 using Xunit;
 
@@ -33,7 +34,9 @@ public class InMemoryTicketRepositoryTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var ticket = service.CreateTicket(

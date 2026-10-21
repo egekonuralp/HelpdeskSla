@@ -17,6 +17,7 @@ public class EfRepositoryDependencyInjectionTests
 
         services.AddDbContext<HelpdeskDbContext>(options => options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddScoped<ITicketRepository, EfTicketRepository>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<TicketService>();
 
         using var provider = services.BuildServiceProvider();

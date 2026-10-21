@@ -2,6 +2,7 @@
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -358,14 +359,17 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
-    public async Task AddAsync_ValidTicket_SavesTicketToDatabase()
+    public async Task AddAsync_ValidTicket_TracksTicketWithoutSaving()
     {
+        // Arrange
+        var databaseName = Guid.NewGuid().ToString();
+
         var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(databaseName)
             .Options;
 
         using var context = new HelpdeskDbContext(options);
-        var repo = new EfTicketRepository(context);
+        var repository = new EfTicketRepository(context);
 
         var ticket = new Ticket(
             "Yazıcı Arızası",
@@ -373,14 +377,18 @@ public class EfTicketRepositoryTests
             TicketPriority.Low);
 
         // Act
-        await repo.AddAsync(ticket);
+        await repository.AddAsync(ticket);
+        var entry = context.Entry(ticket);
+        Assert.Equal(EntityState.Added, entry.State);
 
         // Assert
-        var savedTicket = await context.Tickets
-            .FirstOrDefaultAsync(t => t.Id == ticket.Id);
+        using var verificationContext = new HelpdeskDbContext(options);
 
-        Assert.NotNull(savedTicket);
-        Assert.Equal(ticket.Title, savedTicket.Title);
+        var savedTickets = await verificationContext.Tickets
+            .AsNoTracking()
+            .ToListAsync();
+
+        Assert.Empty(savedTickets);
     }
 
     [Fact]
@@ -732,7 +740,9 @@ public class EfTicketRepositoryTests
             await using (var updateContext = new HelpdeskDbContext(options))
             {
                 var repository = new EfTicketRepository(updateContext);
-                var service = new TicketService(repository);
+                var unitOfWork = new EfUnitOfWork(updateContext);
+
+                var service = new TicketService(repository, unitOfWork);
 
                 await Assert.ThrowsAsync<TicketConcurrencyException>(() =>
                     service.UpdateTicketTitleAsync(ticketId, "Personel A Güncelledi", oldRowVersion));
@@ -790,7 +800,9 @@ public class EfTicketRepositoryTests
             await using (var updateContext = new HelpdeskDbContext(options))
             {
                 var repository = new EfTicketRepository(updateContext);
-                var service = new TicketService(repository);
+                var unitOfWork = new EfUnitOfWork(updateContext);
+
+                var service = new TicketService(repository, unitOfWork);
 
                 await service.UpdateTicketTitleAsync(ticketId, "Yeni Başlık", oldRowVersion);
             }
@@ -1047,5 +1059,40 @@ public class EfTicketRepositoryTests
             await using var cleanupContext = new HelpdeskDbContext(options);
             await cleanupContext.Database.EnsureDeletedAsync();
         }
+    }
+
+    [Fact]
+    public async Task AddAsync_UnitOfWorkSaves_PersistsTicket()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new HelpdeskDbContext(options);   
+        
+        // Act
+        var repository = new EfTicketRepository(dbContext);
+        var unitOfWork = new EfUnitOfWork(dbContext);
+
+        var ticket = new Ticket(
+            "Eski Başlık",
+            "Test Amaçlı Test",
+            TicketPriority.High);
+
+        await repository.AddAsync(ticket);
+        await unitOfWork.SaveChangesAsync();
+
+        // Assert
+        await using var verificationContext = new HelpdeskDbContext(options);
+        
+        var savedTicket = await verificationContext.Tickets
+            .AsNoTracking()
+            .SingleAsync(t => t.Id == ticket.Id);
+
+        Assert.Equal(ticket.Id, savedTicket.Id);
+        Assert.Equal("Eski Başlık", savedTicket.Title);
+        Assert.Equal("Test Amaçlı Test", savedTicket.Description);
+        Assert.Equal(TicketPriority.High, savedTicket.Priority);
     }
 }

@@ -16,7 +16,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var ticket = service.CreateTicket(
@@ -36,7 +38,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -56,7 +60,9 @@ public class TicketServiceTests
     {
         // Arrange 
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -74,7 +80,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -96,7 +104,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket = service.CreateTicket(
             "Sunucu çalışmıyor",
@@ -119,7 +129,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new FakeTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var ticket = service.CreateTicket(
@@ -135,9 +147,12 @@ public class TicketServiceTests
     [Fact]
     public void Constructor_NullRepository_ShouldThrowArgumentNullException()
     {
+        // Arrange
+        var unitOfWork = new FakeUnitOfWork();
+
         // Act
         var exception = Assert.Throws<ArgumentNullException>(() => 
-            new TicketService(null!));
+            new TicketService(null!, unitOfWork));
 
         // Assert
         Assert.Equal("repository", exception.ParamName);
@@ -148,7 +163,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new ThrowingTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var exception = Assert.Throws<InvalidOperationException>(() => 
@@ -166,7 +183,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var tickets = service.GetTicketById(999);
@@ -180,7 +199,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var tickets = service.GetAllTickets();
@@ -194,7 +215,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket1 = new Ticket(
             "Yazıcı Arızası",
@@ -223,7 +246,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -238,7 +263,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act
         var ticket = await service.CreateTicketAsync(
@@ -253,6 +280,8 @@ public class TicketServiceTests
 
         var savedTicket = Assert.Single(repository.GetAll());
         Assert.Same(ticket, savedTicket);
+
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
     }
 
     [Fact]
@@ -260,7 +289,9 @@ public class TicketServiceTests
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
-        var service = new TicketService(repository);
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -286,7 +317,9 @@ public class TicketServiceTests
 
         using var context = new HelpdeskDbContext(options);
         var repository = new EfTicketRepository(context);
-        var service = new TicketService(repository);
+        var unitOfWork = new EfUnitOfWork(context);
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket = new Ticket(
             "Eski Başlık",
@@ -332,7 +365,9 @@ public class TicketServiceTests
 
         using var context = new HelpdeskDbContext(options);
         var repository = new EfTicketRepository(context);
-        var service = new TicketService(repository);
+        var unitOfWork = new EfUnitOfWork(context);
+
+        var service = new TicketService(repository, unitOfWork);
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
@@ -349,7 +384,9 @@ public class TicketServiceTests
 
         using var context = new HelpdeskDbContext(options);
         var repository = new EfTicketRepository(context);
-        var service = new TicketService(repository);
+        var unitOfWork = new EfUnitOfWork(context);
+
+        var service = new TicketService(repository, unitOfWork);
 
         var ticket = new Ticket(
             "Eski Başlık",
@@ -370,5 +407,19 @@ public class TicketServiceTests
             .FirstAsync(t => t.Id == ticket.Id);
 
         Assert.Equal("Eski Başlık", savedTicket.Title);
+    }
+
+    [Fact]
+    public void Constructor_NullUnitOfWork_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var repository = new InMemoryTicketRepository();
+
+        // Act
+        var exception =  Assert.Throws<ArgumentNullException>(() => 
+            new TicketService(repository, null!));
+
+        // Assert
+        Assert.Equal("unitOfWork", exception.ParamName);
     }
 }

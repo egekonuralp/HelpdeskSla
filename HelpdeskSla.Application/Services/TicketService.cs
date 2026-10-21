@@ -7,11 +7,12 @@ namespace HelpdeskSla.Application.Services;
 public class TicketService
 {
     private readonly ITicketRepository _repository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public TicketService(ITicketRepository repository)
+    public TicketService(ITicketRepository repository, IUnitOfWork unitOfWork)
     {
-        _repository = repository
-            ?? throw new ArgumentNullException(nameof(repository));
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
     public Ticket CreateTicket(string title, string description, TicketPriority priority)
@@ -49,6 +50,8 @@ public class TicketService
 
         await _repository.AddAsync(ticket, cancellationToken);
 
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         return ticket; 
     }
 
@@ -77,7 +80,7 @@ public class TicketService
         var auditLog = new TicketAuditLog(ticket.Id, oldTitle, newTitle);
 
         await _repository.AddAuditLogAsync(auditLog, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ticket;
     }

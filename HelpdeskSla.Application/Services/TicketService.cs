@@ -41,6 +41,11 @@ public class TicketService
 
     public Task<Ticket?> GetTicketByIdAsync(int id, CancellationToken cancellationToken = default)
     {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
         return _repository.GetByIdAsync(id, cancellationToken);
     }
 

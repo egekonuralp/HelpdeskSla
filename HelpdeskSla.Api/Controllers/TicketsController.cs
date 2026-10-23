@@ -16,6 +16,8 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(TicketResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TicketResponse>> Create([FromBody] CreateTicketRequest request, CancellationToken cancellationToken)
     {
         var ticket = await _ticketService.CreateTicketAsync(
@@ -34,6 +36,37 @@ public class TicketsController : ControllerBase
             CreatedAt = ticket.CreatedAt
         };
 
-        return StatusCode(StatusCodes.Status201Created, response);
+        return CreatedAtAction(nameof(GetById), new { id = ticket.Id }, response);
+    }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(TicketResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TicketResponse>> GetById(int id, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            return BadRequest(new { Message = "Ticket Id 0'dan büyük olmalıdır !!" });
+        }
+
+        var ticket = await _ticketService.GetTicketByIdAsync(id, cancellationToken);
+
+        if (ticket == null)
+        {
+            return NotFound(new { Message = "Ticket bulunamadı." });
+        }
+
+        var response = new TicketResponse
+        {
+            Id = ticket.Id,
+            Title = ticket.Title,
+            Description = ticket.Description,
+            Priority = ticket.Priority.ToString(),
+            Status = ticket.Status.ToString(),
+            CreatedAt = ticket.CreatedAt
+        };
+
+        return Ok(response);
     }
 }

@@ -69,4 +69,23 @@ public class TicketsController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(List<TicketResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<TicketResponse>>> GetAll(CancellationToken cancellationToken = default)
+    {
+        var tickets = await _ticketService.GetAllTicketsAsync(cancellationToken);
+
+        var response = tickets.Select(tickets => new TicketResponse
+        {
+            Id = tickets.Id,
+            Title = tickets.Title,
+            Description = tickets.Description,
+            Priority = tickets.Priority.ToString(),
+            Status = tickets.Status.ToString(),
+            CreatedAt = tickets.CreatedAt,
+        }).ToList();
+
+        return Ok(response);
+    }
 }

@@ -492,4 +492,58 @@ public class TicketServiceTests
         Assert.Equal("Yazıcı Arızası", result.Title);
         Assert.Equal(TicketPriority.Medium, result.Priority);
     }
+
+    [Fact]
+    public async Task GetAllTicketsAsync_EmptyRepository_ReturnsEmptyList()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.GetAllTicketsAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAllTicketsAsync_MultipleTickets_ReturnsAllTickets()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket1 = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.High);
+
+        var ticket2 = new Ticket(
+            "Printer Issue",
+            "Printer is not responding",
+            TicketPriority.Medium);
+
+        var ticket3 = new Ticket(
+            "Database Error",
+            "Database connection failed",
+            TicketPriority.Critical);
+
+        repository.Add(ticket1);
+        repository.Add(ticket2);
+        repository.Add(ticket3);
+
+        var result = await service.GetAllTicketsAsync();
+
+        Assert.Equal(3, result.Count);
+        Assert.Contains(ticket1, result);
+        Assert.Contains(ticket2, result);
+        Assert.Contains(ticket3, result);
+        Assert.Equal(TicketPriority.High, ticket1.Priority);
+        Assert.Equal(TicketPriority.Medium, ticket2.Priority);
+        Assert.Equal(TicketPriority.Critical, ticket3.Priority);
+    }
 }

@@ -89,4 +89,9 @@ public class TicketService
 
         return ticket;
     }
+
+    public Task<IReadOnlyList<Ticket>> GetAllTicketsAsync(CancellationToken cancellationToken = default)
+    {
+        return _repository.GetAllAsync(cancellationToken);
+    }
 }

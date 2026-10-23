@@ -422,4 +422,74 @@ public class TicketServiceTests
         // Assert
         Assert.Equal("unitOfWork", exception.ParamName);
     }
+
+    [Fact]
+    public async Task GetTicketByIdAsync_InvalidId_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => 
+            service.GetTicketByIdAsync(0));
+
+        // Assert
+        Assert.Equal("id", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task GetTicketByIdAsync_TicketNotFound_ReturnsNull()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.GetTicketByIdAsync(9999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetTicketByIdAsync_ExistingTicket_ReturnsTicket()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new HelpdeskDbContext(options);
+
+        var ticket = new Ticket(
+            "Yazıcı Arızası",
+            "Yazıcı çalışmıyor",
+            TicketPriority.Medium);
+
+        context.Tickets.Add(ticket);
+        await context.SaveChangesAsync();
+
+        var ticketId = ticket.Id;
+
+        // Act
+        using var newContext = new HelpdeskDbContext(options);
+        
+        var repository = new EfTicketRepository(newContext);
+        var unitOfWork = new EfUnitOfWork(newContext);
+
+        var service = new TicketService(repository, unitOfWork);
+
+        var result = await service.GetTicketByIdAsync(ticketId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ticketId, result.Id);
+        Assert.Equal("Yazıcı Arızası", result.Title);
+        Assert.Equal(TicketPriority.Medium, result.Priority);
+    }
 }

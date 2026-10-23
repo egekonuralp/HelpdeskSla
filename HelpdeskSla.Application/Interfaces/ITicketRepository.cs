@@ -24,5 +24,3 @@ public interface ITicketRepository
 
     Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default);
 }
-
-

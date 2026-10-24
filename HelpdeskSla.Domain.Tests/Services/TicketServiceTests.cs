@@ -546,4 +546,43 @@ public class TicketServiceTests
         Assert.Equal(TicketPriority.Medium, ticket2.Priority);
         Assert.Equal(TicketPriority.Critical, ticket3.Priority);
     }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_EmptyRepository_ReturnsEmptyPage()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.GetPagedTicketsAsync(1, 10);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result.Items);
+        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
+    }
+
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(-1, 10)]
+    [InlineData(1, 0)]
+    [InlineData(1, -5)]
+    [InlineData(1, 101)]
+    public async Task GetPagedTicketsAsync_InvalidParameters_ThrowsArgumentOutOfRangeException(int pageNumber, int pageSize)
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            service.GetPagedTicketsAsync(pageNumber, pageSize));
+    }
 }

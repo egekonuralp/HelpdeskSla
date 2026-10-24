@@ -1,6 +1,7 @@
 ﻿using HelpdeskSla.Application.Interfaces;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Application.Services;
 
@@ -93,5 +94,20 @@ public class TicketService
     public Task<IReadOnlyList<Ticket>> GetAllTicketsAsync(CancellationToken cancellationToken = default)
     {
         return _repository.GetAllAsync(cancellationToken);
+    }
+
+    public Task<PagedResult<Ticket>> GetPagedTicketsAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (pageNumber < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        }
+
+        if (pageSize < 0 || pageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageSize));
+        }
+
+        return _repository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
     }
 }

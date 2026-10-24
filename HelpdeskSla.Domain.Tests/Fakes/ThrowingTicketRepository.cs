@@ -1,5 +1,6 @@
 ﻿using HelpdeskSla.Application.Interfaces;
 using HelpdeskSla.Domain.Entities;
+using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Domain.Tests.Fakes;
 
@@ -54,5 +55,10 @@ public class ThrowingTicketRepository : ITicketRepository
     public Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("ThrowingTicketRepository audit log eklemeyi desteklemiyor.");
+    }
+
+    public Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException("Simulated repository failure.");
     }
 }

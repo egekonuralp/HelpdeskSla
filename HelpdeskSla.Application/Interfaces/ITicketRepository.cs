@@ -1,4 +1,5 @@
 ﻿using HelpdeskSla.Domain.Entities;
+using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Application.Interfaces;
 
@@ -23,4 +24,6 @@ public interface ITicketRepository
     void SetOriginalRowVersion(Ticket ticket, byte[] expectedRowVersion);
 
     Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 }

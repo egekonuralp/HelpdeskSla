@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Api.DTOs;
+using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Api.Controllers;
 
@@ -47,14 +48,14 @@ public class TicketsController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(new { Message = "Ticket Id 0'dan büyük olmalıdır !!" });
+            return BadRequest(new { Message = "Ticket Id must be greater than 0!!" });
         }
 
         var ticket = await _ticketService.GetTicketByIdAsync(id, cancellationToken);
 
         if (ticket == null)
         {
-            return NotFound(new { Message = "Ticket bulunamadı." });
+            return NotFound(new { Message = "Ticket not found." });
         }
 
         var response = new TicketResponse
@@ -72,19 +73,38 @@ public class TicketsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<TicketResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<TicketResponse>>> GetAll(CancellationToken cancellationToken = default)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<TicketResponse>>> GetAll(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var tickets = await _ticketService.GetAllTicketsAsync(cancellationToken);
-
-        var response = tickets.Select(tickets => new TicketResponse
+        if (pageNumber <= 0 || pageSize <= 0 || pageSize > 100)
         {
-            Id = tickets.Id,
-            Title = tickets.Title,
-            Description = tickets.Description,
-            Priority = tickets.Priority.ToString(),
-            Status = tickets.Status.ToString(),
-            CreatedAt = tickets.CreatedAt,
-        }).ToList();
+            return BadRequest(new
+            {
+                Message = "Page number must be greater than zero and page size must be between 1 and 100."
+            });
+        }
+
+        var pagedTickets = await _ticketService.GetPagedTicketsAsync(pageNumber, pageSize, cancellationToken);
+
+        var responseItems = pagedTickets.Items
+            .Select(ticket => new TicketResponse
+            {
+                Id = ticket.Id,
+                Title = ticket.Title,
+                Description = ticket.Description,
+                Priority = ticket.Priority.ToString(),
+                Status = ticket.Status.ToString(),
+                CreatedAt = ticket.CreatedAt
+            }).ToList();
+
+        var response = new PagedResult<TicketResponse>(
+            responseItems,
+            pagedTickets.PageNumber,
+            pagedTickets.PageSize,
+            pagedTickets.TotalCount);
 
         return Ok(response);
     }

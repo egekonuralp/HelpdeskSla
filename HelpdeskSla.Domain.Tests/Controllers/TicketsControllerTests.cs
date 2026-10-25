@@ -24,8 +24,15 @@ public class TicketsControllerTests
         var service = new TicketService(repository, unitOfWork);
         var controller = new TicketsController(service);
 
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open
+        };
+
         // Act
-        var result = await controller.GetAll(pageNumber: 1, pageSize: 10, cancellationToken: CancellationToken.None);
+        var result = await controller.GetAll(parameters, CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -51,9 +58,210 @@ public class TicketsControllerTests
         var controller = new TicketsController(service);
 
         // Act
-        var result = await controller.GetAll(pageNumber, pageSize, CancellationToken.None);
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = pageNumber,
+            PageSize= pageSize
+        };
+
+        var result = await controller.GetAll(parameters, CancellationToken.None);
 
         // Assert
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);      
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_StatusFilter_ReturnsOnlyOpenTickets()
+    {
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var ticket1 = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.High);
+
+        ticket1.Assign(5);
+        ticket1.StartProgress();
+
+        var ticket2 = new Ticket(
+            "Printer Issue",
+            "Printer is not responding",
+            TicketPriority.Medium);
+
+        repository.Tickets.Add(ticket1);
+        repository.Tickets.Add(ticket2);
+
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open
+        };
+
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(200, okResult.StatusCode);
+
+        var response = Assert.IsType<PagedResult<TicketResponse>>(okResult.Value);
+
+        Assert.Single(response.Items);
+        Assert.Equal(1, response.TotalCount);
+        Assert.Equal(1, response.TotalPages);
+
+        var returnedTicket = response.Items[0];
+        Assert.Equal("Printer Issue", returnedTicket.Title);
+        Assert.Equal("Open", returnedTicket.Status);
+        Assert.Equal("Medium", returnedTicket.Priority);
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidStatus_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            Status = (TicketStatus)999
+        };
+
+        // Act
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        // Assert
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_StatusAndPriorityFilter_ReturnsMatchingTickets()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var ticket1 = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.Critical);
+
+        var ticket2 = new Ticket(
+            "Printer Issue",
+            "Printer is not responding",
+            TicketPriority.Medium);
+
+        var ticket3 = new Ticket(
+            "Database Error",
+            "Database errorss",
+            TicketPriority.Critical);
+
+        ticket3.Assign(5);
+        ticket3.StartProgress();
+
+        var ticket4 = new Ticket(
+            "Login Problem",
+            "Some login problem",
+            TicketPriority.Critical);
+
+        repository.Tickets.Add(ticket1);
+        repository.Tickets.Add(ticket2);
+        repository.Tickets.Add(ticket3);
+        repository.Tickets.Add(ticket4);
+
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open,
+            Priority = TicketPriority.Critical
+        };
+
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+
+        var response = Assert.IsType<PagedResult<TicketResponse>>(okResult.Value);
+
+        Assert.Equal(2, response.TotalCount);
+        Assert.Equal(2, response.Items.Count);
+        Assert.All(response.Items, ticket =>
+        {
+            Assert.Equal("Open", ticket.Status);
+            Assert.Equal("Critical", ticket.Priority);
+        });
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidPriority_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            Priority = (TicketPriority)999
+        };
+
+        // Act
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidSortBy_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            SortBy = "banana"
+        };
+
+        // Act & Assert
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidSortDirection_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            SortDirection = "fast"
+        };
+
+        // Act & Assert
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 }

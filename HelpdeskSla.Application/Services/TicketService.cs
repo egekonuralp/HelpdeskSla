@@ -110,4 +110,44 @@ public class TicketService
 
         return _repository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
     }
+
+    public Task<PagedResult<Ticket>> GetPagedTicketsAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(nameof(parameters));
+
+        if (parameters.PageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageNumber));
+        }
+
+        if (parameters.PageSize <= 0 || parameters.PageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
+        }
+
+        if (parameters.Status.HasValue && !Enum.IsDefined(parameters.Status.Value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.Status));
+        }
+
+        if (parameters.Priority.HasValue && !Enum.IsDefined(parameters.Priority.Value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.Priority));
+        }
+
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        if (sortBy is not ("id" or "createdat"))
+        {
+            throw new ArgumentException("Invalid sort field.", nameof(parameters.SortBy));
+        }
+
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            throw new ArgumentException("Invalid sort direction.", nameof(parameters.SortDirection));
+        }
+
+        return _repository.GetPagedAsync(parameters, cancellationToken);
+    }
 }

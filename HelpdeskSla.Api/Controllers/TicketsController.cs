@@ -75,19 +75,53 @@ public class TicketsController : ControllerBase
     [ProducesResponseType(typeof(List<TicketResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<TicketResponse>>> GetAll(
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery] TicketQueryParameters parameters,
         CancellationToken cancellationToken = default)
     {
-        if (pageNumber <= 0 || pageSize <= 0 || pageSize > 100)
+        if (parameters.PageNumber <= 0 || parameters.PageSize <= 0 || parameters.PageSize > 100)
         {
             return BadRequest(new
             {
-                Message = "Page number must be greater than zero and page size must be between 1 and 100."
+                Message = "Invalid pagination parameters."
             });
         }
 
-        var pagedTickets = await _ticketService.GetPagedTicketsAsync(pageNumber, pageSize, cancellationToken);
+        if (parameters.Status.HasValue && !Enum.IsDefined(parameters.Status.Value))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid ticket status."
+            });
+        }
+
+        if (parameters.Priority.HasValue && !Enum.IsDefined(parameters.Priority.Value))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid ticket priority."
+            });
+        }
+
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        if (sortBy is not ("id" or "createdat"))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid sort field."
+            });
+        }
+
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid sort direction."
+            });
+        }
+
+        var pagedTickets = await _ticketService.GetPagedTicketsAsync(parameters, cancellationToken);
 
         var responseItems = pagedTickets.Items
             .Select(ticket => new TicketResponse

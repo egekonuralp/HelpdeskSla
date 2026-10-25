@@ -1,4 +1,5 @@
-﻿using HelpdeskSla.Application.Exceptions;
+﻿using HelpdeskSla.Application.Common;
+using HelpdeskSla.Application.Exceptions;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
@@ -6,6 +7,7 @@ using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 
 namespace HelpdeskSla.Domain.Tests.Repositories;
 
@@ -1094,5 +1096,301 @@ public class EfTicketRepositoryTests
         Assert.Equal("Eski Başlık", savedTicket.Title);
         Assert.Equal("Test Amaçlı Test", savedTicket.Description);
         Assert.Equal(TicketPriority.High, savedTicket.Priority);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_StatusAndPriorityFilter_ReturnsMatchingTickets()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var ticket1 = new Ticket(
+                "Network Issue",
+                "Network connection failed",
+                TicketPriority.Critical);
+
+            var ticket2 = new Ticket(
+                "Printer Issue",
+                "Printer is not responding",
+                TicketPriority.Medium);
+
+            var ticket3 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical);
+
+            ticket3.Assign(5);
+            ticket3.StartProgress();
+
+            var ticket4 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical);
+
+            context.Tickets.Add(ticket1);
+            context.Tickets.Add(ticket2);
+            context.Tickets.Add(ticket3);
+            context.Tickets.Add(ticket4);
+            await context.SaveChangesAsync();
+        }
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open,
+            Priority = TicketPriority.Critical
+        };
+
+        using (var verificationContext = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(verificationContext);
+            var result = await repository.GetPagedAsync(parameters);
+
+            Assert.Equal(2, result.TotalCount);
+            Assert.Equal(2, result.Items.Count);
+            Assert.Equal(1, result.TotalPages);
+            Assert.All(result.Items, ticket =>
+            {
+                Assert.Equal(TicketStatus.Open, ticket.Status);
+                Assert.Equal(TicketPriority.Critical, ticket.Priority);
+            });
+            Assert.Contains(result.Items, t => t.Title == "Network Issue");
+            Assert.DoesNotContain(result.Items, t => t.Title == "Printer Issue");
+        }
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_SortByIdDescending_ReturnsCorrectOrder()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var ticket1 = new Ticket(
+                "Network Issue",
+                "Network connection failed",
+                TicketPriority.Critical);
+
+            var ticket2 = new Ticket(
+                "Printer Issue",
+                "Printer is not responding",
+                TicketPriority.Medium);
+
+            var ticket3 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical);
+
+            context.Tickets.Add(ticket1);
+            context.Tickets.Add(ticket2);
+            context.Tickets.Add(ticket3);
+            await context.SaveChangesAsync();
+        }
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "id",
+            SortDirection = "desc"
+        };
+
+        using (var verificationContext = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(verificationContext);
+            var result = await repository.GetPagedAsync(parameters);
+
+            Assert.Equal("Database Error", result.Items[0].Title);
+            Assert.Equal("Printer Issue", result.Items[1].Title);
+            Assert.Equal("Network Issue", result.Items[2].Title);
+            Assert.Equal(3, result.TotalCount);
+            Assert.Equal(3, result.Items.Count);
+        }
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_SortByCreatedAtDescending_ReturnsNewestFirst()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        var startTime = new DateTimeOffset(2026, 10, 25, 10, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FakeTimeProvider(startTime);
+
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var ticket1 = new Ticket(
+                "Network Issue",
+                "Network connection failed",
+                TicketPriority.Critical,
+                timeProvider);
+
+            timeProvider.Advance(TimeSpan.FromHours(1));
+
+            var ticket2 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical,
+                timeProvider);
+
+            timeProvider.Advance(TimeSpan.FromHours(1));
+
+            var ticket3 = new Ticket(
+                "Printer Issue",
+                "Printer is not responding",
+                TicketPriority.Medium,
+                timeProvider);
+
+            context.Tickets.AddRange(ticket1, ticket3, ticket2);
+            await context.SaveChangesAsync();
+        }
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "createdAt",
+            SortDirection = "desc"
+        };
+
+        using (var verificationContext = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(verificationContext);
+            var result = await repository.GetPagedAsync(parameters);
+
+            Assert.Equal(3, result.TotalCount);
+            Assert.Equal(3, result.Items.Count);
+
+            Assert.Equal("Printer Issue", result.Items[0].Title);
+            Assert.Equal("Database Error", result.Items[1].Title);
+            Assert.Equal("Network Issue", result.Items[2].Title);
+
+            Assert.True(result.Items[0].CreatedAt >= result.Items[1].CreatedAt);
+            Assert.True(result.Items[1].CreatedAt >= result.Items[2].CreatedAt);
+        }
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_SameCreatedAt_OrdersByIdDescending()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+    .UseInMemoryDatabase(Guid.NewGuid().ToString())
+    .Options;
+
+        var startTime = new DateTimeOffset(2026, 10, 25, 10, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FakeTimeProvider(startTime);
+
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var ticket1 = new Ticket(
+                "Network Issue",
+                "Network connection failed",
+                TicketPriority.Critical,
+                timeProvider);
+
+            var ticket2 = new Ticket(
+                "Printer Issue",
+                "Printer is not responding",
+                TicketPriority.Medium,
+                timeProvider);
+
+            timeProvider.Advance(TimeSpan.FromHours(2));
+
+            var ticket3 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical,
+                timeProvider);
+
+            context.Tickets.AddRange(ticket1, ticket2, ticket3);
+            await context.SaveChangesAsync();
+        }
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "createdAt",
+            SortDirection = "desc"
+        };
+
+        using (var verificationContext = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(verificationContext);
+            var result = await repository.GetPagedAsync(parameters);
+
+            Assert.Equal(3, result.TotalCount);
+            Assert.Equal(3, result.Items.Count);
+
+            Assert.Equal("Database Error", result.Items[0].Title);
+            Assert.Equal("Printer Issue", result.Items[1].Title);
+            Assert.Equal("Network Issue", result.Items[2].Title);
+
+            Assert.Equal(result.Items[1].CreatedAt, result.Items[2].CreatedAt);
+            Assert.True(result.Items[1].Id > result.Items[2].Id);
+        }
+    }
+
+
+    [Fact]
+    public async Task GetPagedAsync_SortByCreatedAtDescending_ReturnsCorrectOrder()
+    {
+        var repository = new FakeTicketRepository();
+        var startTime = new DateTimeOffset(2026, 10, 25, 10, 0, 0, TimeSpan.Zero);
+
+        var timeProvider = new FakeTimeProvider(startTime);
+
+        var ticket1 = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.Critical,
+            timeProvider);
+
+        timeProvider.Advance(TimeSpan.FromHours(1));
+
+        var ticket2 = new Ticket(
+            "Database Error",
+            "Database connection failed",
+            TicketPriority.Critical,
+            timeProvider);
+
+        timeProvider.Advance(TimeSpan.FromHours(1));
+
+        var ticket3 = new Ticket(
+            "Printer Issue",
+            "Printer is not responding",
+            TicketPriority.Medium,
+            timeProvider);
+
+        repository.Tickets.AddRange(new[] { ticket3, ticket1, ticket2 });
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "createdAt",
+            SortDirection = "desc"
+        };
+
+        var result = await repository.GetPagedAsync(parameters);
+
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(3, result.Items.Count);
+        Assert.Equal(1, result.TotalPages);
+
+        Assert.Equal("Printer Issue", result.Items[0].Title);
+        Assert.Equal("Database Error", result.Items[1].Title);
+        Assert.Equal("Network Issue", result.Items[2].Title);
+
+        Assert.Equal(startTime.AddHours(2), result.Items[0].CreatedAt);
+        Assert.Equal(startTime.AddHours(1), result.Items[1].CreatedAt);
+        Assert.Equal(startTime, result.Items[2].CreatedAt);
     }
 }

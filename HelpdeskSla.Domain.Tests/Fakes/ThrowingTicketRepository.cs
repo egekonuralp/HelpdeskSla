@@ -61,4 +61,9 @@ public class ThrowingTicketRepository : ITicketRepository
     {
         throw new InvalidOperationException("Simulated repository failure.");
     }
+
+    public Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException("Simulated repository failure.");
+    }
 }

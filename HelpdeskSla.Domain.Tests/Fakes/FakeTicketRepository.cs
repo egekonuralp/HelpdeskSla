@@ -108,11 +108,10 @@ public class FakeTicketRepository : ITicketRepository
         return Task.FromResult(result);
     }
 
+
     public Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (parameters.PageNumber <= 0)
         {
@@ -124,7 +123,7 @@ public class FakeTicketRepository : ITicketRepository
             throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
         }
 
-        var query = Tickets.AsEnumerable();
+        IEnumerable<Ticket> query = Tickets;
 
         if (parameters.Status.HasValue)
         {
@@ -136,18 +135,40 @@ public class FakeTicketRepository : ITicketRepository
             query = query.Where(t => t.Priority == parameters.Priority.Value);
         }
 
-        var filteredTickets = query.OrderBy(t => t.Id).ToList();
+        var totalCount = query.Count();
+
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        var sortedQuery = (sortBy, sortDirection) switch
+        {
+            ("id", "asc") => query
+                .OrderBy(t => t.Id),
+
+            ("id", "desc") => query
+                .OrderByDescending(t => t.Id),
+
+            ("createdat", "asc") => query
+                .OrderBy(t => t.CreatedAt)
+                .ThenBy(t => t.Id),
+
+            ("createdat", "desc") => query
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenByDescending(t => t.Id),
+
+            _ => throw new ArgumentException("Invalid sorting parameters.")
+        };
 
         var skip = ((long)parameters.PageNumber - 1) * parameters.PageSize;
 
         var items = skip > int.MaxValue
             ? new List<Ticket>()
-            : filteredTickets
+            : sortedQuery
                 .Skip((int)skip)
                 .Take(parameters.PageSize)
                 .ToList();
 
-        return Task.FromResult(new PagedResult<Ticket>(items, parameters.PageNumber, parameters.PageSize, filteredTickets.Count));
+        return Task.FromResult(new PagedResult<Ticket>(items, parameters.PageNumber, parameters.PageSize, totalCount));
     }
 }
 

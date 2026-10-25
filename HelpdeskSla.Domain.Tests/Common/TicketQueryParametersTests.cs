@@ -77,4 +77,15 @@ public class TicketQueryParametersTests
             Assert.All(result.Items, ticket => Assert.Equal(TicketStatus.Open, ticket.Status));
         }
     }
+
+    [Fact]
+    public void Constructor_DefaultSortingValues_AreCorrect()
+    {
+        // Arrange & Act
+        var parameters = new TicketQueryParameters();
+
+        // Assert
+        Assert.Equal("id", parameters.SortBy);
+        Assert.Equal("asc", parameters.SortDirection);
+    }
 }

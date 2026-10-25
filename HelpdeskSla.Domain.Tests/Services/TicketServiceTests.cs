@@ -675,4 +675,42 @@ public class TicketServiceTests
 
         Assert.Equal(400, badRequest.StatusCode);
     }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_InvalidSortBy_ThrowsArgumentException()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var parameters = new TicketQueryParameters
+        {
+            SortBy = "banana"
+        };
+
+        // Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetPagedTicketsAsync(parameters));
+    }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_InvalidSortDirection_ThrowsArgumentException()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var parameters = new TicketQueryParameters
+        {
+            SortDirection = "fast"
+        };
+
+        // Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetPagedTicketsAsync(parameters));
+    }
 }

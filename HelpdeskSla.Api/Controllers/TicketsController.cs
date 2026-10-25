@@ -102,6 +102,25 @@ public class TicketsController : ControllerBase
             });
         }
 
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        if (sortBy is not ("id" or "createdat"))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid sort field."
+            });
+        }
+
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid sort direction."
+            });
+        }
+
         var pagedTickets = await _ticketService.GetPagedTicketsAsync(parameters, cancellationToken);
 
         var responseItems = pagedTickets.Items

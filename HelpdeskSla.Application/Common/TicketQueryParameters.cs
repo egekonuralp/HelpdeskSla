@@ -11,4 +11,8 @@ public sealed class TicketQueryParameters
     public TicketStatus? Status { get; set; }
 
     public TicketPriority? Priority { get; set; }
+
+    public string SortBy { get; set; } = "id";
+
+    public string SortDirection { get; set; } = "asc";
 }

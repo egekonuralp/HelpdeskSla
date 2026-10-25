@@ -224,4 +224,44 @@ public class TicketsControllerTests
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
+
+    [Fact]
+    public async Task GetAll_InvalidSortBy_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            SortBy = "banana"
+        };
+
+        // Act & Assert
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidSortDirection_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            SortDirection = "fast"
+        };
+
+        // Act & Assert
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
 }

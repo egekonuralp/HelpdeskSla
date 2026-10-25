@@ -135,6 +135,19 @@ public class TicketService
             throw new ArgumentOutOfRangeException(nameof(parameters.Priority));
         }
 
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        if (sortBy is not ("id" or "createdat"))
+        {
+            throw new ArgumentException("Invalid sort field.", nameof(parameters.SortBy));
+        }
+
+        if (sortDirection is not ("asc" or "desc"))
+        {
+            throw new ArgumentException("Invalid sort direction.", nameof(parameters.SortDirection));
+        }
+
         return _repository.GetPagedAsync(parameters, cancellationToken);
     }
 }

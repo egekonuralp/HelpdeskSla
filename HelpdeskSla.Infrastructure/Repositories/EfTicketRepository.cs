@@ -161,7 +161,7 @@ public class EfTicketRepository : ITicketRepository
             throw new ArgumentOutOfRangeException(nameof(parameters.PageNumber));
         }
 
-        if (parameters.PageSize < 0 || parameters.PageSize > 100)
+        if (parameters.PageSize <= 0 || parameters.PageSize > 100)
         {
             throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
         }
@@ -180,12 +180,33 @@ public class EfTicketRepository : ITicketRepository
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+        var sortBy = parameters.SortBy?.ToLowerInvariant();
+        var sortDirection = parameters.SortDirection?.ToLowerInvariant();
+
+        var sortedQuery = (sortBy, sortDirection) switch
+        {
+            ("id", "asc") => query
+                .OrderBy(t => t.Id),
+
+            ("id", "desc") => query
+                .OrderByDescending(t => t.Id),
+
+            ("createdat", "asc") => query
+                .OrderBy(t => t.CreatedAt)
+                .ThenBy(t => t.Id),
+
+            ("createdat", "desc") => query
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenByDescending(t => t.Id),
+
+            _ => throw new ArgumentException("Invalid sorting parameters.")
+        };
+
         var skip = ((long) parameters.PageNumber - 1) * parameters.PageSize;
 
         var items = skip > int.MaxValue
             ? new List<Ticket>()
-            : await query
-                .OrderBy(t => t.Id)
+            : await sortedQuery
                 .Skip((int)skip)
                 .Take(parameters.PageSize)
                 .ToListAsync(cancellationToken);

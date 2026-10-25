@@ -6,6 +6,7 @@ using HelpdeskSla.Infrastructure.Repositories;
 using HelpdeskSla.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Domain.Tests.Services;
 
@@ -584,5 +585,69 @@ public class TicketServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             service.GetPagedTicketsAsync(pageNumber, pageSize));
+    }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_StatusFilter_ReturnsOnlyOpenTickets()
+    {
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+
+        var ticket1 = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.High);
+
+        ticket1.Assign(5);
+        ticket1.StartProgress();
+
+        var ticket2 = new Ticket(
+            "Printer Issue",
+            "Printer is not responding",
+            TicketPriority.Medium);
+
+        var ticket3 = new Ticket(
+            "Database Error",
+            "Database connection failed",
+            TicketPriority.Critical);
+
+        repository.Tickets.Add(ticket1);
+        repository.Tickets.Add(ticket2);
+        repository.Tickets.Add(ticket3);
+        await unitOfWork.SaveChangesAsync();
+
+        var service = new TicketService(repository, unitOfWork);
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open
+        };
+
+        var result = await service.GetPagedTicketsAsync(parameters);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Items.Count);
+        Assert.All(result.Items, ticket => Assert.Equal(TicketStatus.Open, ticket.Status));
+    }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_InvalidStatus_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var parameters = new TicketQueryParameters
+        {
+            Status = (TicketStatus)999
+        };
+
+        // Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => 
+            service.GetPagedTicketsAsync(parameters));
     }
 }

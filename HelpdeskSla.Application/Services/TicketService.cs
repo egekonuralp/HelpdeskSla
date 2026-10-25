@@ -110,4 +110,26 @@ public class TicketService
 
         return _repository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
     }
+
+    public Task<PagedResult<Ticket>> GetPagedTicketsAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(nameof(parameters));
+
+        if (parameters.PageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageNumber));
+        }
+
+        if (parameters.PageSize <= 0 || parameters.PageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
+        }
+
+        if (parameters.Status.HasValue && !Enum.IsDefined(parameters.Status.Value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.Status));
+        }
+
+        return _repository.GetPagedAsync(parameters, cancellationToken);
+    }
 }

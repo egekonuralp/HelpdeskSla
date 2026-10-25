@@ -151,4 +151,40 @@ public class EfTicketRepository : ITicketRepository
 
         return new PagedResult<Ticket>(items, pageNumber, pageSize, totalCount);
     }
+
+    public async Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        if (parameters.PageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageNumber));
+        }
+
+        if (parameters.PageSize < 0 || parameters.PageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
+        }
+
+        var query = _context.Tickets.AsNoTracking();
+
+        if ( parameters.Status.HasValue)
+        {
+            query = query.Where(t => t.Status == parameters.Status.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var skip = ((long) parameters.PageNumber - 1) * parameters.PageSize;
+
+        var items = skip > int.MaxValue
+            ? new List<Ticket>()
+            : await query
+                .OrderBy(t => t.Id)
+                .Skip((int)skip)
+                .Take(parameters.PageSize)
+                .ToListAsync(cancellationToken);
+
+        return new PagedResult<Ticket>(items, parameters.PageNumber, parameters.PageSize, totalCount);
+    }
 }

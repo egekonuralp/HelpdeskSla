@@ -107,5 +107,42 @@ public class FakeTicketRepository : ITicketRepository
 
         return Task.FromResult(result);
     }
+
+    public Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (parameters.PageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageNumber));
+        }
+
+        if (parameters.PageSize <= 0 || parameters.PageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
+        }
+
+        var query = Tickets.AsEnumerable();
+
+        if (parameters.Status.HasValue)
+        {
+            query = query.Where(t => t.Status == parameters.Status.Value);
+        }
+
+        var filteredTickets = query.OrderBy(t => t.Id).ToList();
+
+        var skip = ((long)parameters.PageNumber - 1) * parameters.PageSize;
+
+        var items = skip > int.MaxValue
+            ? new List<Ticket>()
+            : filteredTickets
+                .Skip((int)skip)
+                .Take(parameters.PageSize)
+                .ToList();
+
+        return Task.FromResult(new PagedResult<Ticket>(items, parameters.PageNumber, parameters.PageSize, filteredTickets.Count));
+    }
 }
 

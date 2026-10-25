@@ -1,12 +1,14 @@
-﻿using HelpdeskSla.Application.Services;
+﻿using HelpdeskSla.Api.Controllers;
+using HelpdeskSla.Application.Common;
+using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Tests.Fakes;
-using HelpdeskSla.Infrastructure.Repositories;
 using HelpdeskSla.Infrastructure.Persistence;
+using HelpdeskSla.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using HelpdeskSla.Application.Common;
 
 namespace HelpdeskSla.Domain.Tests.Services;
 
@@ -649,5 +651,28 @@ public class TicketServiceTests
         // Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => 
             service.GetPagedTicketsAsync(parameters));
+    }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_InvalidPriority_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var parameters = new TicketQueryParameters
+        {
+            Priority = (TicketPriority)999
+        };
+
+        // Act
+        var result = await controller.GetAll(parameters, CancellationToken.None);
+
+        // Assert
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+
+        Assert.Equal(400, badRequest.StatusCode);
     }
 }

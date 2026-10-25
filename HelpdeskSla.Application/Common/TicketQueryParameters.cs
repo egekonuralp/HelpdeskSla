@@ -9,4 +9,6 @@ public sealed class TicketQueryParameters
     public int PageSize { get; set; } = 10;
 
     public TicketStatus? Status { get; set; }
+
+    public TicketPriority? Priority { get; set; }
 }

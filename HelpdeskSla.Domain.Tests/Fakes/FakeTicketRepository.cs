@@ -131,6 +131,11 @@ public class FakeTicketRepository : ITicketRepository
             query = query.Where(t => t.Status == parameters.Status.Value);
         }
 
+        if (parameters.Priority.HasValue)
+        {
+            query = query.Where(t => t.Priority == parameters.Priority.Value);
+        }
+
         var filteredTickets = query.OrderBy(t => t.Id).ToList();
 
         var skip = ((long)parameters.PageNumber - 1) * parameters.PageSize;

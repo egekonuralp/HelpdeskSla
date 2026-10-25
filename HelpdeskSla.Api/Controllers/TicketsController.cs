@@ -94,6 +94,14 @@ public class TicketsController : ControllerBase
             });
         }
 
+        if (parameters.Priority.HasValue && !Enum.IsDefined(parameters.Priority.Value))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid ticket priority."
+            });
+        }
+
         var pagedTickets = await _ticketService.GetPagedTicketsAsync(parameters, cancellationToken);
 
         var responseItems = pagedTickets.Items

@@ -168,9 +168,14 @@ public class EfTicketRepository : ITicketRepository
 
         var query = _context.Tickets.AsNoTracking();
 
-        if ( parameters.Status.HasValue)
+        if (parameters.Status.HasValue)
         {
             query = query.Where(t => t.Status == parameters.Status.Value);
+        }
+
+        if (parameters.Priority.HasValue)
+        {
+            query = query.Where(t => t.Priority == parameters.Priority.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

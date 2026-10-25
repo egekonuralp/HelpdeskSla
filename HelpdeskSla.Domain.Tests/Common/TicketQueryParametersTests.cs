@@ -1,9 +1,12 @@
-﻿using HelpdeskSla.Application.Common;
+﻿using Azure;
+using HelpdeskSla.Api.DTOs;
+using HelpdeskSla.Application.Common;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpdeskSla.Domain.Tests.Common;

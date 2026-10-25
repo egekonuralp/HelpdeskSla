@@ -1,4 +1,5 @@
-﻿using HelpdeskSla.Application.Exceptions;
+﻿using HelpdeskSla.Application.Common;
+using HelpdeskSla.Application.Exceptions;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
@@ -1095,4 +1096,70 @@ public class EfTicketRepositoryTests
         Assert.Equal("Test Amaçlı Test", savedTicket.Description);
         Assert.Equal(TicketPriority.High, savedTicket.Priority);
     }
+
+    [Fact]
+    public async Task GetPagedAsync_StatusAndPriorityFilter_ReturnsMatchingTickets()
+    {
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var ticket1 = new Ticket(
+                "Network Issue",
+                "Network connection failed",
+                TicketPriority.Critical);
+
+            var ticket2 = new Ticket(
+                "Printer Issue",
+                "Printer is not responding",
+                TicketPriority.Medium);
+
+            var ticket3 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical);
+
+            ticket3.Assign(5);
+            ticket3.StartProgress();
+
+            var ticket4 = new Ticket(
+                "Database Error",
+                "Database connection failed",
+                TicketPriority.Critical);
+
+            context.Tickets.Add(ticket1);
+            context.Tickets.Add(ticket2);
+            context.Tickets.Add(ticket3);
+            context.Tickets.Add(ticket4);
+            await context.SaveChangesAsync();
+        }
+
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            Status = TicketStatus.Open,
+            Priority = TicketPriority.Critical
+        };
+
+        using (var verificationContext = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(verificationContext);
+            var result = await repository.GetPagedAsync(parameters);
+
+            Assert.Equal(2, result.TotalCount);
+            Assert.Equal(2, result.Items.Count);
+            Assert.Equal(1, result.TotalPages);
+            Assert.All(result.Items, ticket =>
+            {
+                Assert.Equal(TicketStatus.Open, ticket.Status);
+                Assert.Equal(TicketPriority.Critical, ticket.Priority);
+            });
+            Assert.Contains(result.Items, t => t.Title == "Network Issue");
+            Assert.DoesNotContain(result.Items, t => t.Title == "Printer Issue");
+        }
+    }
+
 }

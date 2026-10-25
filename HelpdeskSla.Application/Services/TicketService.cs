@@ -130,6 +130,11 @@ public class TicketService
             throw new ArgumentOutOfRangeException(nameof(parameters.Status));
         }
 
+        if (parameters.Priority.HasValue && !Enum.IsDefined(parameters.Priority.Value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(parameters.Priority));
+        }
+
         return _repository.GetPagedAsync(parameters, cancellationToken);
     }
 }

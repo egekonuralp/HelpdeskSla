@@ -166,4 +166,20 @@ public class TicketService
 
         return true;
     }
+
+    public async Task<bool> StartProgressAsync(int  ticketId, CancellationToken cancellationToken = default)
+    {
+        var ticket = await _repository.GetByIdAsync(ticketId, cancellationToken);
+
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        ticket.StartProgress();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 }

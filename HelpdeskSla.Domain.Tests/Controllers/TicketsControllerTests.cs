@@ -15,6 +15,13 @@ namespace HelpdeskSla.Domain.Tests.Controllers;
 
 public class TicketsControllerTests
 {
+    private static void SetTicketId(Ticket ticket, int id)
+    {
+        var property = typeof(Ticket).GetProperty(nameof(Ticket.Id))!;
+
+        property.SetValue(ticket, id);
+    }
+
     [Fact]
     public async Task GetAll_EmptyRepository_ReturnsOkWithEmptyList()
     {
@@ -263,5 +270,154 @@ public class TicketsControllerTests
         var result = await controller.GetAll(parameters, CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Assign_ValidRequest_ReturnsNoContent()
+    {
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network Issue",
+            "Network connection failed",
+            TicketPriority.Critical);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        var request = new AssignTicketRequest
+        {
+            UserId = 5
+        };
+
+        // Act
+        var result = await controller.Assign(ticket.Id, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal(TicketStatus.Assigned, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Assign_InvalidUserId_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var request = new AssignTicketRequest
+        {
+            UserId = 0
+        };
+
+        // Act
+        var result = await controller.Assign(15, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Assign_TicketNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var request = new AssignTicketRequest
+        {
+            UserId = 5
+        };
+
+        // Act
+        var result = await controller.Assign(999, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Assign_InProgressTicket_ReturnsConflict()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        var request = new AssignTicketRequest
+        {
+            UserId = 10
+        };
+
+        // Act
+        var result = await controller.Assign(ticket.Id, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(TicketStatus.InProgress, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Assign_InvalidTicketId_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var request = new AssignTicketRequest
+        {
+            UserId = 5
+        };
+
+        // Act
+        var result = await controller.Assign(0, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Assign_NullRequest_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        // Act
+        var result = await controller.Assign(15, null!, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
 }

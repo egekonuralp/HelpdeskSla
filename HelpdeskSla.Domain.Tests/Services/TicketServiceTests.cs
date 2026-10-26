@@ -14,6 +14,13 @@ namespace HelpdeskSla.Domain.Tests.Services;
 
 public class TicketServiceTests
 {
+    private static void SetTicketId(Ticket ticket, int id)
+    {
+        var property = typeof(Ticket).GetProperty(nameof(Ticket.Id))!;
+
+        property.SetValue(ticket, id);
+    }
+
     [Fact]
     public void CreateTicket_ValidInputs_ShouldReturnOpenTicket()
     {
@@ -727,6 +734,7 @@ public class TicketServiceTests
             "User cannot connect to the network",
             TicketPriority.High);
 
+        SetTicketId(ticket, 15);
         repository.Tickets.Add(ticket);
 
         // Act
@@ -767,6 +775,7 @@ public class TicketServiceTests
             "User cannot connect to the network",
             TicketPriority.High);
 
+        SetTicketId(ticket, 15);
         repository.Tickets.Add(ticket);
 
         // Act
@@ -777,6 +786,35 @@ public class TicketServiceTests
         Assert.Equal("userId", exception.ParamName);
         Assert.Equal(TicketStatus.Open, ticket.Status);
         Assert.Null(ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task AssignTicketAsync_InProgressTicket_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.AssignTicketAsync(ticket.Id, 10));
+
+        // Assert
+        Assert.Equal(TicketStatus.InProgress, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
 }

@@ -142,4 +142,50 @@ public class TicketsController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpPost("{id:int}/assign")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Assign(int id, [FromBody] AssignTicketRequest request, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            return BadRequest(new
+            {
+                Message = "Ticket Id must be greater than 0."
+            });
+        }
+
+        if (request is null || request.UserId <= 0)
+        {
+            return BadRequest(new
+            {
+                Message = "User Id must be greater than 0."
+            });
+        }
+
+        try
+        {
+            var assigned = await _ticketService.AssignTicketAsync(id, request.UserId, cancellationToken);
+
+            if (!assigned)
+            {
+                return NotFound(new
+                {
+                    Message = "Ticket not found."
+                });
+            }
+
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new
+            {
+                Message = "Ticket cannot be assigned in its current status."
+            });
+        }
+    }
 }

@@ -150,4 +150,20 @@ public class TicketService
 
         return _repository.GetPagedAsync(parameters, cancellationToken);
     }
+
+    public async Task<bool> AssignTicketAsync(int ticketId, int userId, CancellationToken cancellationToken = default)
+    {
+        var ticket = await _repository.GetByIdAsync(ticketId, cancellationToken);
+
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        ticket.Assign(userId);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 }

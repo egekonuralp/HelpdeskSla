@@ -14,6 +14,13 @@ namespace HelpdeskSla.Domain.Tests.Services;
 
 public class TicketServiceTests
 {
+    private static void SetTicketId(Ticket ticket, int id)
+    {
+        var property = typeof(Ticket).GetProperty(nameof(Ticket.Id))!;
+
+        property.SetValue(ticket, id);
+    }
+
     [Fact]
     public void CreateTicket_ValidInputs_ShouldReturnOpenTicket()
     {
@@ -712,5 +719,102 @@ public class TicketServiceTests
         // Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.GetPagedTicketsAsync(parameters));
+    }
+
+    [Fact]
+    public async Task AssignTicketAsync_ValidTicket_AssignsUserAndSavesChanges()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await service.AssignTicketAsync(ticket.Id, 5);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(TicketStatus.Assigned, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+    }
+
+    [Fact]
+    public async Task AssignTicketAsync_TicketNotFound_ReturnsFalseWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.AssignTicketAsync(999, 5);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task AssignTicketAsync_InvalidUserId_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => 
+            service.AssignTicketAsync(ticket.Id, 0));
+
+        // Assert
+        Assert.Equal("userId", exception.ParamName);
+        Assert.Equal(TicketStatus.Open, ticket.Status);
+        Assert.Null(ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task AssignTicketAsync_InProgressTicket_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.AssignTicketAsync(ticket.Id, 10));
+
+        // Assert
+        Assert.Equal(TicketStatus.InProgress, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
 }

@@ -226,4 +226,42 @@ public class TicketsController : ControllerBase
             });
         }
     }
+
+    [HttpPost("{id:int}/wait-for-customer")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> WaitForCustomer(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            return BadRequest(new
+            {
+                Message = "Ticket Id must be greater than 0."
+            });
+        }
+
+        try
+        {
+            var waiting = await _ticketService.WaitForCustomerAsync(id, cancellationToken);
+
+            if (!waiting)
+            {
+                return NotFound(new
+                {
+                    Message = "Ticket not found."
+                });
+            }
+
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new
+            {
+                Message = "Ticket cannot wait for customer in its current status."
+            });
+        }
+    }
 }

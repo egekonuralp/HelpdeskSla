@@ -182,4 +182,20 @@ public class TicketService
 
         return true;
     }
+
+    public async Task<bool> WaitForCustomerAsync(int ticketId, CancellationToken cancellationToken = default)
+    {
+        var ticket = await _repository.GetByIdAsync(ticketId, cancellationToken);
+
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        ticket.WaitForCustomer();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 }

@@ -510,4 +510,97 @@ public class TicketsControllerTests
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
         Assert.Equal(TicketStatus.Open, ticket.Status);
     }
+
+    [Fact]
+    public async Task WaitForCustomer_InProgressTicket_ReturnsNoContent()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await controller.WaitForCustomer(ticket.Id, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal(TicketStatus.PendingCustomer, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task WaitForCustomer_InvalidTicketId_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        // Act
+        var result = await controller.WaitForCustomer(0, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task WaitForCustomer_TicketNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        // Act
+        var result = await controller.WaitForCustomer(999, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task WaitForCustomer_AssignedTicket_ReturnsConflict()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await controller.WaitForCustomer(ticket.Id, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(TicketStatus.Assigned, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
 }

@@ -796,4 +796,116 @@ public class TicketsControllerTests
         Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
         Assert.Equal(TicketStatus.Resolved, ticket.Status);
     }
+
+    [Fact]
+    public async Task Close_ResolvedTicket_ReturnsNoContent()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+        ticket.Resolve();
+
+        var originalResolvedAt = ticket.ResolvedAt;
+        var originalResolutionTime = ticket.ResolutionTime;
+        var originalIsSlaBreached = ticket.IsSlaBreached;
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await controller.Close(ticket.Id, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+        Assert.Equal(TicketStatus.Closed, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+
+        Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
+        Assert.Equal(originalResolutionTime, ticket.ResolutionTime);
+        Assert.Equal(originalIsSlaBreached, ticket.IsSlaBreached);
+    }
+
+    [Fact]
+    public async Task Close_InvalidTicketId_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        // Act
+        var result = await controller.Close(0, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Close_TicketNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        // Act
+        var result = await controller.Close(999, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task Close_AlreadyClosedTicket_ReturnsConflict()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+        ticket.Resolve();
+        ticket.Close();
+
+        var originalResolvedAt = ticket.ResolvedAt;
+        var originalResolutionTime = ticket.ResolutionTime;
+        var originalIsSlaBreached = ticket.IsSlaBreached;
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await controller.Close(ticket.Id, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+        Assert.Equal(TicketStatus.Closed, ticket.Status);
+
+        Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
+        Assert.Equal(originalResolutionTime, ticket.ResolutionTime);
+        Assert.Equal(originalIsSlaBreached, ticket.IsSlaBreached);
+    }
 }

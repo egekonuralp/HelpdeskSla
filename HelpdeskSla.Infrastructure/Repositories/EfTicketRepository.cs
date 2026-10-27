@@ -58,7 +58,6 @@ public class EfTicketRepository : ITicketRepository
         }
 
         return await _context.Tickets
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);        
     }
 

@@ -1035,4 +1035,83 @@ public class TicketServiceTests
         Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
+
+    [Fact]
+    public async Task ResolveTicketAsync_InProgressTicket_ChangesStatusAndSaves()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await service.ResolveTicketAsync(ticket.Id);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(TicketStatus.Resolved, ticket.Status);
+        Assert.NotNull(ticket.ResolvedAt);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+        Assert.NotNull(ticket.ResolutionTime);
+        Assert.Equal(5, ticket.AssignedUserId);
+    }
+
+    [Fact]
+    public async Task ResolveTicketAsync_TicketNotFound_ReturnsFalseWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.ResolveTicketAsync(999);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task ResolveTicketAsync_AlreadyResolvedTicket_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+        ticket.Resolve();
+
+        var originalResolvedAt = ticket.ResolvedAt;
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ResolveTicketAsync(ticket.Id));
+
+        // Assert
+        Assert.Equal(TicketStatus.Resolved, ticket.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+        Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
+    }
 }

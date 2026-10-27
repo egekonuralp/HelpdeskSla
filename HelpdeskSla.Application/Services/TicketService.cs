@@ -214,4 +214,20 @@ public class TicketService
 
         return true;
     }
+
+    public async Task<bool> ResolveTicketAsync(int ticketId, CancellationToken cancellationToken = default)
+    {
+        var ticket = await _repository.GetByIdAsync(ticketId, cancellationToken);
+
+        if (ticket is null)
+        {
+            return false;
+        }
+
+        ticket.Resolve();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 }

@@ -960,4 +960,79 @@ public class TicketServiceTests
         Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
+
+    [Fact]
+    public async Task ResumeProgressAsync_PendingCustomerTicket_ChangesStatusAndSaves()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+        ticket.WaitForCustomer();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var result = await service.ResumeProgressAsync(ticket.Id);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(TicketStatus.InProgress, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task ResumeProgressAsync_TicketNotFound_ReturnsFalseWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        // Act
+        var result = await service.ResumeProgressAsync(999);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task ResumeProgressAsync_InProgressTicket_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+
+        var ticket = new Ticket(
+            "Network connection problem",
+            "User cannot connect to the network",
+            TicketPriority.High);
+
+        ticket.Assign(5);
+        ticket.StartProgress();
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.ResumeProgressAsync(ticket.Id));
+
+        // Assert
+        Assert.Equal(TicketStatus.InProgress, ticket.Status);
+        Assert.Equal(5, ticket.AssignedUserId);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
 }

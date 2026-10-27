@@ -340,4 +340,42 @@ public class TicketsController : ControllerBase
             });
         }
     }
+
+    [HttpPost("{id:int}/close")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Close(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            return BadRequest(new
+            {
+                Message = "Ticket Id must be greater than 0."
+            });
+        }
+
+        try
+        {
+            var close = await _ticketService.CloseTicketAsync(id, cancellationToken);
+
+            if (!close)
+            {
+                return NotFound(new
+                {
+                    Message = "Ticket not found."
+                });
+            }
+
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new
+            {
+                Message = "Ticket cannot close in its current status."
+            });
+        }
+    }
 }

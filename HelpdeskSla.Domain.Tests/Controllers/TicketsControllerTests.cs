@@ -1,4 +1,5 @@
-﻿using HelpdeskSla.Api.Controllers;
+﻿using Azure;
+using HelpdeskSla.Api.Controllers;
 using HelpdeskSla.Api.DTOs;
 using HelpdeskSla.Application.Common;
 using HelpdeskSla.Application.Services;
@@ -7,6 +8,7 @@ using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -907,5 +909,193 @@ public class TicketsControllerTests
         Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
         Assert.Equal(originalResolutionTime, ticket.ResolutionTime);
         Assert.Equal(originalIsSlaBreached, ticket.IsSlaBreached);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_InvalidBase64_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "Updated title",
+            RowVersion = "invalid***"
+        };
+
+        // Act
+        var result = await controller.UpdateTitle(1, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_InvalidRowVersionLength_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "Updated title",
+            RowVersion = "AQID"
+        };
+
+        // Act
+        var result = await controller.UpdateTitle(1, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_ValidRequest_ReturnsOkWithUpdatedTicket()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Original title",
+            "Original description",
+            TicketPriority.Medium);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        // Act
+        var rowVersion = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, });
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "Updated title",
+            RowVersion = rowVersion
+        };
+
+        var result = await controller.UpdateTitle(ticket.Id, request, CancellationToken.None);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<TicketResponse>(okResult.Value);
+
+        Assert.Equal(15, response.Id);
+        Assert.Equal("Updated title", response.Title);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+        Assert.Equal(Convert.ToBase64String(ticket.RowVersion), response.RowVersion);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_TicketNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Original title",
+            "Original description",
+            TicketPriority.Medium);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        var rowVersion = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, });
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "Updated title",
+            RowVersion = rowVersion
+        };
+
+        // Act
+        var result = await controller.UpdateTitle(999, request, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+        Assert.Equal("Original title", ticket.Title);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_ConcurrencyConflict_ReturnsConflict()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new ThrowingUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Original title",
+            "Original description",
+            TicketPriority.Medium);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        var rowVersion = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, });
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "Updated title",
+            RowVersion = rowVersion
+        };
+
+        //Act
+        var result = await controller.UpdateTitle(ticket.Id, request, CancellationToken.None);
+
+        // Assert
+        var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflictResult.StatusCode);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    public async Task UpdateTitle_EmptyTitle_ReturnsBadRequest()
+    {
+        // Arrange
+        var repository = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repository, unitOfWork);
+        var controller = new TicketsController(service);
+
+        var ticket = new Ticket(
+            "Original title",
+            "Original description",
+            TicketPriority.Medium);
+
+        SetTicketId(ticket, 15);
+        repository.Tickets.Add(ticket);
+
+        var rowVersion = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, });
+
+        var request = new UpdateTicketTitleRequest
+        {
+            NewTitle = "   ",
+            RowVersion = rowVersion
+        };
+
+        // Act
+        var result = await controller.UpdateTitle(ticket.Id, request, CancellationToken.None);
+
+        // Assert
+        var conflictResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status400BadRequest, conflictResult.StatusCode);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+        Assert.Equal("Original title", ticket.Title);
     }
 }

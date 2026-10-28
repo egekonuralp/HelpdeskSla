@@ -2,6 +2,7 @@
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Api.DTOs;
 using HelpdeskSla.Application.Common;
+using HelpdeskSla.Application.Exceptions;
 
 namespace HelpdeskSla.Api.Controllers;
 
@@ -34,7 +35,8 @@ public class TicketsController : ControllerBase
             Description = ticket.Description,
             Priority = ticket.Priority.ToString(),
             Status = ticket.Status.ToString(),
-            CreatedAt = ticket.CreatedAt
+            CreatedAt = ticket.CreatedAt,
+            RowVersion = Convert.ToBase64String(ticket.RowVersion)
         };
 
         return CreatedAtAction(nameof(GetById), new { id = ticket.Id }, response);
@@ -65,14 +67,15 @@ public class TicketsController : ControllerBase
             Description = ticket.Description,
             Priority = ticket.Priority.ToString(),
             Status = ticket.Status.ToString(),
-            CreatedAt = ticket.CreatedAt
+            CreatedAt = ticket.CreatedAt,
+            RowVersion = Convert.ToBase64String(ticket.RowVersion)
         };
 
         return Ok(response);
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(List<TicketResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<TicketResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<TicketResponse>>> GetAll(
         [FromQuery] TicketQueryParameters parameters,
@@ -131,7 +134,8 @@ public class TicketsController : ControllerBase
                 Description = ticket.Description,
                 Priority = ticket.Priority.ToString(),
                 Status = ticket.Status.ToString(),
-                CreatedAt = ticket.CreatedAt
+                CreatedAt = ticket.CreatedAt,
+                RowVersion = Convert.ToBase64String(ticket.RowVersion)
             }).ToList();
 
         var response = new PagedResult<TicketResponse>(
@@ -375,6 +379,83 @@ public class TicketsController : ControllerBase
             return Conflict(new
             {
                 Message = "Ticket cannot close in its current status."
+            });
+        }
+    }
+
+    [HttpPut("{id:int}/title")]
+    [ProducesResponseType(typeof(TicketResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<TicketResponse>> UpdateTitle(int id, [FromBody] UpdateTicketTitleRequest request, CancellationToken cancellationToken)
+    {
+        if (id <= 0 || request == null || string.IsNullOrWhiteSpace(request.NewTitle) || string.IsNullOrWhiteSpace(request.RowVersion))
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid request parameters. Id, Title or RowVersion cannot be empty."
+            });
+        }
+
+        byte[] expectedRowVersion;
+
+        try
+        {
+            expectedRowVersion = Convert.FromBase64String(request.RowVersion);
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new
+            {
+                Message = "Invalid RowVersion format."
+            });
+        }
+
+        if (expectedRowVersion.Length != 8)
+        {
+            return BadRequest(new
+            {
+                Message = "RowVersion must be exactly 8 bytes long."
+            });
+        }
+
+        try
+        {
+            var ticket = await _ticketService.UpdateTicketTitleAsync(id, request.NewTitle, expectedRowVersion, cancellationToken);
+
+            var response = new TicketResponse
+            {
+                Id = ticket.Id,
+                Title = ticket.Title,
+                Description = ticket.Description,
+                Priority = ticket.Priority.ToString(),
+                Status = ticket.Status.ToString(),
+                CreatedAt = ticket.CreatedAt,
+                RowVersion = Convert.ToBase64String(ticket.RowVersion)
+            };
+
+            return Ok(response);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new
+            {
+                Message = "Ticket not found."
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new
+            {
+                Message = $"Domain rule violation: {ex.Message}"
+            });
+        }
+        catch (TicketConcurrencyException ex)
+        {
+            return Conflict(new
+            {
+                Message = ex.Message
             });
         }
     }

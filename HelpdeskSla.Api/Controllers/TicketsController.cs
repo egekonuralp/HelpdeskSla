@@ -3,6 +3,7 @@ using HelpdeskSla.Application.Services;
 using HelpdeskSla.Api.DTOs;
 using HelpdeskSla.Application.Common;
 using HelpdeskSla.Application.Exceptions;
+using HelpdeskSla.Api.Mappings;
 
 namespace HelpdeskSla.Api.Controllers;
 
@@ -28,16 +29,7 @@ public class TicketsController : ControllerBase
             request.Priority,
             cancellationToken);
 
-        var response = new TicketResponse
-        {
-            Id = ticket.Id,
-            Title = ticket.Title,
-            Description = ticket.Description,
-            Priority = ticket.Priority.ToString(),
-            Status = ticket.Status.ToString(),
-            CreatedAt = ticket.CreatedAt,
-            RowVersion = Convert.ToBase64String(ticket.RowVersion)
-        };
+        var response = TicketResponseMapper.ToResponse(ticket);
 
         return CreatedAtAction(nameof(GetById), new { id = ticket.Id }, response);
     }
@@ -60,16 +52,7 @@ public class TicketsController : ControllerBase
             return NotFound(new { Message = "Ticket not found." });
         }
 
-        var response = new TicketResponse
-        {
-            Id = ticket.Id,
-            Title = ticket.Title,
-            Description = ticket.Description,
-            Priority = ticket.Priority.ToString(),
-            Status = ticket.Status.ToString(),
-            CreatedAt = ticket.CreatedAt,
-            RowVersion = Convert.ToBase64String(ticket.RowVersion)
-        };
+        var response = TicketResponseMapper.ToResponse(ticket);
 
         return Ok(response);
     }
@@ -127,16 +110,8 @@ public class TicketsController : ControllerBase
         var pagedTickets = await _ticketService.GetPagedTicketsAsync(parameters, cancellationToken);
 
         var responseItems = pagedTickets.Items
-            .Select(ticket => new TicketResponse
-            {
-                Id = ticket.Id,
-                Title = ticket.Title,
-                Description = ticket.Description,
-                Priority = ticket.Priority.ToString(),
-                Status = ticket.Status.ToString(),
-                CreatedAt = ticket.CreatedAt,
-                RowVersion = Convert.ToBase64String(ticket.RowVersion)
-            }).ToList();
+            .Select(TicketResponseMapper.ToResponse)
+            .ToList();
 
         var response = new PagedResult<TicketResponse>(
             responseItems,
@@ -424,16 +399,7 @@ public class TicketsController : ControllerBase
         {
             var ticket = await _ticketService.UpdateTicketTitleAsync(id, request.NewTitle, expectedRowVersion, cancellationToken);
 
-            var response = new TicketResponse
-            {
-                Id = ticket.Id,
-                Title = ticket.Title,
-                Description = ticket.Description,
-                Priority = ticket.Priority.ToString(),
-                Status = ticket.Status.ToString(),
-                CreatedAt = ticket.CreatedAt,
-                RowVersion = Convert.ToBase64String(ticket.RowVersion)
-            };
+            var response = TicketResponseMapper.ToResponse(ticket);
 
             return Ok(response);
         }

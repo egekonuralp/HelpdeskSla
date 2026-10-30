@@ -2,6 +2,7 @@
 using HelpdeskSla.Api.Controllers;
 using HelpdeskSla.Api.DTOs;
 using HelpdeskSla.Application.Common;
+using HelpdeskSla.Application.Exceptions;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
@@ -350,7 +351,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task Assign_InProgressTicket_ReturnsConflict()
+    public async Task Assign_InProgressTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -375,10 +376,10 @@ public class TicketsControllerTests
         };
 
         // Act
-        var result = await controller.Assign(ticket.Id, request, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.Assign(ticket.Id, request, CancellationToken.None));
 
         // Assert
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(TicketStatus.InProgress, ticket.Status);
         Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
@@ -487,7 +488,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task StartProgress_OpenTicket_ReturnsConflict()
+    public async Task StartProgress_OpenTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -504,11 +505,11 @@ public class TicketsControllerTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var result = await controller.StartProgress(ticket.Id, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.StartProgress(ticket.Id, CancellationToken.None));
 
         // Assert
         Assert.Null(ticket.AssignedUserId);
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
         Assert.Equal(TicketStatus.Open, ticket.Status);
     }
@@ -578,7 +579,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task WaitForCustomer_AssignedTicket_ReturnsConflict()
+    public async Task WaitForCustomer_AssignedTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -597,10 +598,10 @@ public class TicketsControllerTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var result = await controller.WaitForCustomer(ticket.Id, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            controller.WaitForCustomer(ticket.Id, CancellationToken.None));
 
         // Assert
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(TicketStatus.Assigned, ticket.Status);
         Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
@@ -672,7 +673,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task ResumeProgress_InProgressTicket_ReturnsConflict()
+    public async Task ResumeProgress_InProgressTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -692,10 +693,10 @@ public class TicketsControllerTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var result = await controller.ResumeProgress(ticket.Id, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.ResumeProgress(ticket.Id, CancellationToken.None));
 
         // Assert
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(TicketStatus.InProgress, ticket.Status);
         Assert.Equal(5, ticket.AssignedUserId);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
@@ -767,7 +768,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task Resolve_AlreadyResolvedTicket_ReturnsConflict()
+    public async Task Resolve_AlreadyResolvedTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -790,10 +791,10 @@ public class TicketsControllerTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var result = await controller.Resolve(ticket.Id, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.Resolve(ticket.Id, CancellationToken.None));
 
         // Assert
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
         Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
         Assert.Equal(TicketStatus.Resolved, ticket.Status);
@@ -873,7 +874,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task Close_AlreadyClosedTicket_ReturnsConflict()
+    public async Task Close_AlreadyClosedTicket_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -899,10 +900,10 @@ public class TicketsControllerTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var result = await controller.Close(ticket.Id, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() 
+            => controller.Close(ticket.Id, CancellationToken.None));
 
         // Assert
-        Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
         Assert.Equal(TicketStatus.Closed, ticket.Status);
 
@@ -997,7 +998,7 @@ public class TicketsControllerTests
     }
 
     [Fact]
-    public async Task UpdateTitle_TicketNotFound_ReturnsNotFound()
+    public async Task UpdateTitle_TicketNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -1022,16 +1023,16 @@ public class TicketsControllerTests
         };
 
         // Act
-        var result = await controller.UpdateTitle(999, request, CancellationToken.None);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => 
+            controller.UpdateTitle(999, request, CancellationToken.None));
 
         // Assert
-        Assert.IsType<NotFoundObjectResult>(result.Result);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
         Assert.Equal("Original title", ticket.Title);
     }
 
     [Fact]
-    public async Task UpdateTitle_ConcurrencyConflict_ReturnsConflict()
+    public async Task UpdateTitle_ConcurrencyConflict_ThrowsInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -1056,11 +1057,10 @@ public class TicketsControllerTests
         };
 
         //Act
-        var result = await controller.UpdateTitle(ticket.Id, request, CancellationToken.None);
+        await Assert.ThrowsAsync<TicketConcurrencyException>(() => 
+            controller.UpdateTitle(ticket.Id, request, CancellationToken.None));
 
         // Assert
-        var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal(StatusCodes.Status409Conflict, conflictResult.StatusCode);
         Assert.Equal(1, unitOfWork.SaveChangesCallCount);
     }
 

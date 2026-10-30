@@ -2,6 +2,7 @@ using HelpdeskSla.Application.Interfaces;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
+using HelpdeskSla.Api.ExceptionHandling;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Database
 builder.Services.AddDbContext<HelpdeskDbContext>(options => options.UseSqlServer(
@@ -27,6 +30,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -41,3 +46,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

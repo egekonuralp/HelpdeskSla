@@ -2,7 +2,6 @@
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Api.DTOs;
 using HelpdeskSla.Application.Common;
-using HelpdeskSla.Application.Exceptions;
 using HelpdeskSla.Api.Mappings;
 
 namespace HelpdeskSla.Api.Controllers;
@@ -42,14 +41,20 @@ public class TicketsController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(new { Message = "Ticket Id must be greater than 0!!" });
+            return BadRequest(new 
+            { 
+                Message = "Ticket Id must be greater than 0!!" 
+            });
         }
 
         var ticket = await _ticketService.GetTicketByIdAsync(id, cancellationToken);
 
         if (ticket == null)
         {
-            return NotFound(new { Message = "Ticket not found." });
+            return NotFound(new 
+            { 
+                Message = "Ticket not found." 
+            });
         }
 
         var response = TicketResponseMapper.ToResponse(ticket);
@@ -145,27 +150,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var assigned = await _ticketService.AssignTicketAsync(id, request.UserId, cancellationToken);
+        var assigned = await _ticketService.AssignTicketAsync(id, request.UserId, cancellationToken);
 
-            if (!assigned)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!assigned)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot be assigned in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/start-progress")]
@@ -183,27 +178,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var started = await _ticketService.StartProgressAsync(id, cancellationToken);
+        var started = await _ticketService.StartProgressAsync(id, cancellationToken);
 
-            if (!started)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!started)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot start progress in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/wait-for-customer")]
@@ -221,27 +206,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var waiting = await _ticketService.WaitForCustomerAsync(id, cancellationToken);
+        var waiting = await _ticketService.WaitForCustomerAsync(id, cancellationToken);
 
-            if (!waiting)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!waiting)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot wait for customer in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/resume-progress")]
@@ -259,27 +234,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var resume = await _ticketService.ResumeProgressAsync(id, cancellationToken);
+        var resume = await _ticketService.ResumeProgressAsync(id, cancellationToken);
 
-            if (!resume)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!resume)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot resume progress in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/resolve")]
@@ -297,27 +262,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var resolve = await _ticketService.ResolveTicketAsync(id, cancellationToken);
+        var resolve = await _ticketService.ResolveTicketAsync(id, cancellationToken);
 
-            if (!resolve)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!resolve)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot resolve in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/close")]
@@ -335,27 +290,17 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var close = await _ticketService.CloseTicketAsync(id, cancellationToken);
+        var close = await _ticketService.CloseTicketAsync(id, cancellationToken);
 
-            if (!close)
-            {
-                return NotFound(new
-                {
-                    Message = "Ticket not found."
-                });
-            }
-
-            return NoContent();
-        }
-        catch (InvalidOperationException)
+        if (!close)
         {
-            return Conflict(new
+            return NotFound(new
             {
-                Message = "Ticket cannot close in its current status."
+                Message = "Ticket not found."
             });
         }
+
+        return NoContent();
     }
 
     [HttpPut("{id:int}/title")]
@@ -395,34 +340,10 @@ public class TicketsController : ControllerBase
             });
         }
 
-        try
-        {
-            var ticket = await _ticketService.UpdateTicketTitleAsync(id, request.NewTitle, expectedRowVersion, cancellationToken);
+        var ticket = await _ticketService.UpdateTicketTitleAsync(id, request.NewTitle, expectedRowVersion, cancellationToken);
 
-            var response = TicketResponseMapper.ToResponse(ticket);
+        var response = TicketResponseMapper.ToResponse(ticket);
 
-            return Ok(response);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound(new
-            {
-                Message = "Ticket not found."
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new
-            {
-                Message = $"Domain rule violation: {ex.Message}"
-            });
-        }
-        catch (TicketConcurrencyException ex)
-        {
-            return Conflict(new
-            {
-                Message = ex.Message
-            });
-        }
+        return Ok(response);
     }
 }

@@ -113,7 +113,7 @@ public class TicketService
 
     public Task<PagedResult<Ticket>> GetPagedTicketsAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(nameof(parameters));
+        ArgumentNullException.ThrowIfNull(parameters);
 
         if (parameters.PageNumber <= 0)
         {

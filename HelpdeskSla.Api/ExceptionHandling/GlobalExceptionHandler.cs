@@ -8,10 +8,12 @@ namespace HelpdeskSla.Api.ExceptionHandling;
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetailsService;
+    private readonly ILogger<GlobalExceptionHandler> _logger;
 
-    public GlobalExceptionHandler(IProblemDetailsService problemDetailsService)
+    public GlobalExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<GlobalExceptionHandler> logger)
     {
         _problemDetailsService = problemDetailsService;
+        _logger = logger;
     }
 
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -21,9 +23,15 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             TicketConcurrencyException => StatusCodes.Status409Conflict,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             TicketInvalidStateException => StatusCodes.Status409Conflict,
+            ArgumentException => StatusCodes.Status400BadRequest,
 
             _ => StatusCodes.Status500InternalServerError
         };
+
+        if (statusCode == StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(exception, "Unhandled exception occured. Path: {RequestPath}", httpContext.Request.Path);
+        }
 
         var problemDetails = new ProblemDetails
         {
@@ -32,6 +40,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             {
                 StatusCodes.Status404NotFound => "Resource not found.",
                 StatusCodes.Status409Conflict => "Conflict",
+                StatusCodes.Status400BadRequest => "Bad Request",
 
                 _ => "Internal server error."
             },

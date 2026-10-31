@@ -1206,4 +1206,20 @@ public class TicketServiceTests
         Assert.Equal(originalResolvedAt, ticket.ResolvedAt);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
+
+    [Fact]
+    public async Task GetPagedTicketsAsync_NullParameters_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var repositoy = new FakeTicketRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new TicketService(repositoy, unitOfWork);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(() => 
+            service.GetPagedTicketsAsync((TicketQueryParameters)null!));
+    
+        // Assert
+        Assert.Equal("parameters", exception.ParamName);
+    }
 }

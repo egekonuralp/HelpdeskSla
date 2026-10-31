@@ -5,15 +5,16 @@ using HelpdeskSla.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace HelpdeskSla.Domain.Tests.ExceptionHandling;
 
 public class GlobalExceptionHandlerTests
 {
-    private static async Task<(int StatusCode, string ResponseBody)> HandleExceptionAsync(Exception exception)
+    private static async Task<(int StatusCode, string ResponseBody)> HandleExceptionAsync(Exception exception, 
+        ILogger<GlobalExceptionHandler>? logger = null)
     {
         var services = new ServiceCollection();
-
         services.AddLogging();
         services.AddProblemDetails();
 
@@ -21,7 +22,8 @@ public class GlobalExceptionHandlerTests
 
         var problemDetailsService = serviceProvider.GetRequiredService<IProblemDetailsService>();
 
-        var handler = new GlobalExceptionHandler(problemDetailsService);
+        var handler = new GlobalExceptionHandler(problemDetailsService, 
+            logger ?? serviceProvider.GetRequiredService<ILogger<GlobalExceptionHandler>>());
 
         var httpContext = new DefaultHttpContext
         {
@@ -35,7 +37,6 @@ public class GlobalExceptionHandlerTests
         httpContext.Response.Body = responseStream;
 
         var handled = await handler.TryHandleAsync(httpContext, exception, CancellationToken.None);
-
         Assert.True(handled);
 
         responseStream.Position = 0;
@@ -119,5 +120,37 @@ public class GlobalExceptionHandlerTests
         Assert.Equal(409, json.RootElement.GetProperty("status").GetInt32());
         Assert.Equal("Conflict", json.RootElement.GetProperty("title").GetString());
         Assert.Equal("Ticket cannot be resolved.", json.RootElement.GetProperty("detail").GetString());
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_UnexpectedException_LogsError()
+    {
+        // Arrange
+        var logger = new FakeLogger<GlobalExceptionHandler>();
+        var exception = new Exception("Database connection failed.");
+
+        // Act
+        var result = await HandleExceptionAsync(exception, logger);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status500InternalServerError, result.StatusCode);
+        Assert.Contains(LogLevel.Error, logger.LoggedLevels);
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_ArgumentException_Returns400ProblemDetails()
+    {
+        // Arrange
+        var exception = new ArgumentException("Invalid ticket priority");
+
+        // Act
+        var result = await HandleExceptionAsync(exception);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+
+        using var json = JsonDocument.Parse(result.ResponseBody);
+        Assert.Equal(400, json.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal("Bad Request", json.RootElement.GetProperty("title").GetString());
     }
 }

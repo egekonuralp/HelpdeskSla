@@ -1,8 +1,9 @@
 ﻿using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
-using Microsoft.Extensions.Time.Testing;
-using HelpdeskSla.Domain.Tests.TestData;
+using HelpdeskSla.Domain.Exceptions;
 using HelpdeskSla.Domain.Tests.Builders;
+using HelpdeskSla.Domain.Tests.TestData;
+using Microsoft.Extensions.Time.Testing;
 using System;
 using Xunit;
 
@@ -220,7 +221,7 @@ namespace HelpdeskSla.Domain.Tests
                 TicketPriority.Medium);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.StartProgress();
             });
@@ -262,7 +263,7 @@ namespace HelpdeskSla.Domain.Tests
             ticket.Assign(5);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.WaitForCustomer();
             });
@@ -303,7 +304,7 @@ namespace HelpdeskSla.Domain.Tests
                 TicketPriority.High);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.ResumeProgress();
             });
@@ -345,7 +346,7 @@ namespace HelpdeskSla.Domain.Tests
             ticket.Assign(5);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.Resolve();
             });
@@ -376,7 +377,7 @@ namespace HelpdeskSla.Domain.Tests
             var ticket = CreateInProgressTicket();
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.Close();
             });
@@ -472,7 +473,7 @@ namespace HelpdeskSla.Domain.Tests
             ticket.Assign(5);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.Resolve();
             });
@@ -938,7 +939,7 @@ namespace HelpdeskSla.Domain.Tests
             var priority = ticket.Priority;
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
             {
                 ticket.ChangePriority(TicketPriority.Critical);
             });
@@ -1019,7 +1020,7 @@ namespace HelpdeskSla.Domain.Tests
             var priority = ticket.Priority;
 
             // Act
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<TicketInvalidStateException>(() => 
                 ticket.ChangePriority(TicketPriority.Critical));
 
             // Assert
@@ -1077,7 +1078,7 @@ namespace HelpdeskSla.Domain.Tests
             var title = ticket.Title;
 
             // Act
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<TicketInvalidStateException>(() => 
                 ticket.UpdateTitle("Yeni başlık"));
 
             // Assert
@@ -1170,7 +1171,7 @@ namespace HelpdeskSla.Domain.Tests
             ticket.Close();
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
                 ticket.UpdateDescription("Yeni açıklama"));
 
             // Assert
@@ -1187,7 +1188,7 @@ namespace HelpdeskSla.Domain.Tests
                 TicketPriority.Critical);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
                 ticket.Resolve());
 
             // Assert
@@ -1226,7 +1227,7 @@ namespace HelpdeskSla.Domain.Tests
                 TicketPriority.Critical);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<TicketInvalidStateException>(() => 
                 ticket.StartProgress());
 
             // Assert
@@ -1246,7 +1247,7 @@ namespace HelpdeskSla.Domain.Tests
             ticket.Assign(5);
 
             // Act
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<TicketInvalidStateException>(() => 
                 ticket.WaitForCustomer());
 
             // Assert
@@ -1261,7 +1262,7 @@ namespace HelpdeskSla.Domain.Tests
             var ticket = CreateInProgressTicket();
 
             // Act
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<TicketInvalidStateException>(() =>
                 ticket.Close());
 
             // Assert
@@ -1278,7 +1279,7 @@ namespace HelpdeskSla.Domain.Tests
             var resolvedAt = ticket.ResolvedAt;
 
             // Act
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<TicketInvalidStateException>(() => 
                 ticket.ChangePriority(TicketPriority.Critical));
 
             // Assert
@@ -1432,7 +1433,7 @@ namespace HelpdeskSla.Domain.Tests
 
             // Assert
             Assert.Equal("newTitle", exception.ParamName);
-            Assert.Contains("Ticket başlığı boş olamaz.", exception.Message);
+            Assert.Contains("Ticket title cannot be empty.", exception.Message);
             Assert.Equal(originalTitle, ticket.Title);
         }
 
@@ -1657,7 +1658,7 @@ namespace HelpdeskSla.Domain.Tests
                 .Build();
 
             // Act
-            var exception = Assert.Throws<InvalidOperationException>(() =>
+            var exception = Assert.Throws<TicketInvalidStateException>(() =>
                 ticket.Resolve());
 
             // Assert

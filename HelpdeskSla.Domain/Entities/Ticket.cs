@@ -1,4 +1,5 @@
 ﻿using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Domain.Exceptions;
 
 namespace HelpdeskSla.Domain.Entities
 {
@@ -105,12 +106,12 @@ namespace HelpdeskSla.Domain.Entities
 
         public Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
         {
-            EnsureNotEmpty(title, nameof(title), "Ticket başlığı boş olamaz.");
-            EnsureNotEmpty(description, nameof(description), "Ticket açıklaması boş olamaz.");
+            EnsureNotEmpty(title, nameof(title), "Ticket title cannot be empty.");
+            EnsureNotEmpty(description, nameof(description), "Ticket description cannot be empty.");
 
             if (!Enum.IsDefined(priority))
             {
-                throw new ArgumentOutOfRangeException(nameof(priority), "Geçersiz Ticket önceliği.");
+                throw new ArgumentOutOfRangeException(nameof(priority), "Invalid ticket priority.");
             }
 
             _timeProvider = timeProvider ?? TimeProvider.System;
@@ -141,7 +142,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status == TicketStatus.Resolved || Status == TicketStatus.Closed)
             {
-                throw new InvalidOperationException(errorMessage);
+                throw new TicketInvalidStateException(errorMessage);
             }
         }
 
@@ -149,12 +150,12 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.Open)
             {
-                throw new InvalidOperationException("Yalnızca Open durumundaki Ticket atanabilir.");
+                throw new TicketInvalidStateException("Only tickets in the Open status can be assigned.");
             }
 
             if (userId <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(userId), "Kullanıcı ID'si sıfırdan büyük olmalı.");
+                throw new ArgumentOutOfRangeException(nameof(userId), "The user ID must be greater than zero.");
             }
 
             AssignedUserId = userId;
@@ -165,7 +166,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.Assigned)
             {
-                throw new InvalidOperationException("Yalnızca Assigned durumundaki Ticket üzerinde çalışmaya başlanabilir.");
+                throw new TicketInvalidStateException("Ticket must be assigned before starting progress.");
             }
 
             Status = TicketStatus.InProgress;
@@ -175,7 +176,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.InProgress)
             {
-                throw new InvalidOperationException("Yalnızca InProgress durumundaki Ticket müşteri yanıtı beklemeye alınabilir.");
+                throw new TicketInvalidStateException("Only tickets in the InProgress status can have their customer response put on hold.");
             }
 
             Status = TicketStatus.PendingCustomer;
@@ -185,7 +186,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.PendingCustomer)
             {
-                throw new InvalidOperationException("Yalnızca PendingCustomer durumundaki Ticket devam ettirilebilir.");
+                throw new TicketInvalidStateException("Only tickets in the PendingCustomer status can be continued.");
             }
 
             Status = TicketStatus.InProgress;
@@ -195,7 +196,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.InProgress)
             {
-                throw new InvalidOperationException("Yalnızca InProgress durumundaki Ticket çözülebilir.");
+                throw new TicketInvalidStateException("Only tickets in the InProgress status can be resolved.");
             }
 
             Status = TicketStatus.Resolved;
@@ -206,7 +207,7 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (Status != TicketStatus.Resolved)
             {
-                throw new InvalidOperationException("Ticket'ın kapatılabilmesi için önce Resolved durumunda olması gerekir.");
+                throw new TicketInvalidStateException("The ticket must be in the \"Resolved\" status before it can be closed.");
             }
 
             Status = TicketStatus.Closed;
@@ -228,10 +229,10 @@ namespace HelpdeskSla.Domain.Entities
         {
             if (!Enum.IsDefined(newPriority))
             {
-                throw new ArgumentOutOfRangeException(nameof(newPriority), "Geçersiz Ticket önceliği.");
+                throw new ArgumentOutOfRangeException(nameof(newPriority), "Invalid ticket priority.");
             }
 
-            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın önceliği değiştirilemez.");
+            EnsureTicketIsEditable("The priority of a resolved or closed ticket cannot be changed.");
 
             if (Priority == newPriority)
             {
@@ -243,8 +244,8 @@ namespace HelpdeskSla.Domain.Entities
 
         public void UpdateTitle(string newTitle)
         {
-            EnsureNotEmpty(newTitle, nameof(newTitle), "Ticket başlığı boş olamaz.");
-            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın başlığı değiştirilemez.");
+            EnsureNotEmpty(newTitle, nameof(newTitle), "Ticket title cannot be empty.");
+            EnsureTicketIsEditable("The title of a resolved or closed ticket cannot be changed.");
 
             if (Title == newTitle)
             {
@@ -256,8 +257,8 @@ namespace HelpdeskSla.Domain.Entities
 
         public void UpdateDescription(string newDescription)
         {
-            EnsureNotEmpty(newDescription, nameof(newDescription), "Ticket açıklaması boş olamaz.");
-            EnsureTicketIsEditable("Çözülmüş veya kapatılmış Ticket'ın açıklaması değiştirilemez.");
+            EnsureNotEmpty(newDescription, nameof(newDescription), "Ticket description cannot be empty");
+            EnsureTicketIsEditable("The description of a resolved or closed ticket cannot be changed.");
 
             if (Description == newDescription)
             {

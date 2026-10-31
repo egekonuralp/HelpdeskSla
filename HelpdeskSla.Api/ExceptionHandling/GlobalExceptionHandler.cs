@@ -1,4 +1,5 @@
 ﻿using HelpdeskSla.Application.Exceptions;
+using HelpdeskSla.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,7 +20,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             TicketConcurrencyException => StatusCodes.Status409Conflict,
             KeyNotFoundException => StatusCodes.Status404NotFound,
-            InvalidOperationException => StatusCodes.Status409Conflict,
+            TicketInvalidStateException => StatusCodes.Status409Conflict,
 
             _ => StatusCodes.Status500InternalServerError
         };

@@ -3,6 +3,7 @@ using HelpdeskSla.Application.Common;
 using HelpdeskSla.Application.Services;
 using HelpdeskSla.Domain.Entities;
 using HelpdeskSla.Domain.Enums;
+using HelpdeskSla.Domain.Exceptions;
 using HelpdeskSla.Domain.Tests.Fakes;
 using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
@@ -126,7 +127,7 @@ public class TicketServiceTests
         service.AssignTicket(ticket, 5);
 
         // Act
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<TicketInvalidStateException>(() =>
             service.AssignTicket(ticket, 10));
 
         // Assert
@@ -809,7 +810,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<TicketInvalidStateException>(() => 
             service.AssignTicketAsync(ticket.Id, 10));
 
         // Assert
@@ -879,7 +880,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<TicketInvalidStateException>(() =>
             service.StartProgressAsync(ticket.Id));
 
         // Assert
@@ -952,7 +953,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<TicketInvalidStateException>(() =>
             service.WaitForCustomerAsync(ticket.Id));
 
         // Assert
@@ -1027,7 +1028,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<TicketInvalidStateException>(() => 
             service.ResumeProgressAsync(ticket.Id));
 
         // Assert
@@ -1106,7 +1107,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<TicketInvalidStateException>(() =>
             service.ResolveTicketAsync(ticket.Id));
 
         // Assert
@@ -1195,7 +1196,7 @@ public class TicketServiceTests
         repository.Tickets.Add(ticket);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<TicketInvalidStateException>(() =>
             service.CloseTicketAsync(ticket.Id));
 
         // Assert

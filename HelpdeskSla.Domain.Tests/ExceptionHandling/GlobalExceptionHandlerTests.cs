@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using HelpdeskSla.Api.ExceptionHandling;
 using HelpdeskSla.Application.Exceptions;
+using HelpdeskSla.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -106,7 +107,7 @@ public class GlobalExceptionHandlerTests
     public async Task TryHandleAsync_InvalidOperationException_Returns409ProblemDetails()
     {
         // Arrange
-        var exception = new InvalidOperationException("Ticket cannot be resolved.");
+        var exception = new TicketInvalidStateException("Ticket cannot be resolved.");
 
         // Act 
         var result = await HandleExceptionAsync(exception);

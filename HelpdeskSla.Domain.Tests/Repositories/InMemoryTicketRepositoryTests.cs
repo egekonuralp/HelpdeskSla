@@ -30,7 +30,7 @@ public class InMemoryTicketRepositoryTests
     }
 
     [Fact]
-    public void CreateTicket_InMemoryRepository_ShouldStoreTicket()
+    public async Task CreateTicketAsync_InMemoryRepository_ShouldStoreTicket()
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
@@ -39,7 +39,7 @@ public class InMemoryTicketRepositoryTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);

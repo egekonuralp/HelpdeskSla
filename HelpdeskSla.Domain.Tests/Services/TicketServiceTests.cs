@@ -23,7 +23,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void CreateTicket_ValidInputs_ShouldReturnOpenTicket()
+    public async Task CreateTicketAsync_ValidInputs_ShouldReturnOpenTicket()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -32,7 +32,7 @@ public class TicketServiceTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);
@@ -45,7 +45,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void AssignTicket_OpenTicket_ShouldAssignUser()
+    public async Task AssignTicket_OpenTicket_ShouldAssignUser()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -53,7 +53,7 @@ public class TicketServiceTests
 
         var service = new TicketService(repository, unitOfWork);
 
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);
@@ -67,7 +67,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void CreateTicket_EmptyTitle_ShouldThrowArgumentException()
+    public async Task CreateTicketAsync_EmptyTitle_ShouldThrowArgumentException()
     {
         // Arrange 
         var repository = new FakeTicketRepository();
@@ -76,8 +76,8 @@ public class TicketServiceTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var exception = Assert.Throws<ArgumentException>(() =>
-            service.CreateTicket(
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateTicketAsync(
                 "",
                 "Sunucuya erişilemiyor",
                 TicketPriority.Low));
@@ -87,7 +87,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void AssignTicket_InvalidUserId_ShouldThrowArgumentOutOfRangeException()
+    public async Task AssignTicket_InvalidUserId_ShouldThrowArgumentOutOfRangeException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -95,7 +95,7 @@ public class TicketServiceTests
 
         var service = new TicketService(repository, unitOfWork);
 
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);
@@ -111,7 +111,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void AssignTicket_AlreadyAssignedTicket_ShouldThrowInvalidOperationException()
+    public async Task AssignTicket_AlreadyAssignedTicket_ShouldThrowInvalidOperationException()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -119,7 +119,7 @@ public class TicketServiceTests
 
         var service = new TicketService(repository, unitOfWork);
 
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);
@@ -136,7 +136,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void CreateTicket_ValidInputs_ShouldAddTicketToRepository()
+    public async Task CreateTicketAsync_ValidInputs_ShouldAddTicketToRepository()
     {
         // Arrange
         var repository = new FakeTicketRepository();
@@ -145,7 +145,7 @@ public class TicketServiceTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var ticket = service.CreateTicket(
+        var ticket = await service.CreateTicketAsync(
             "Sunucu çalışmıyor",
             "Sunucuya erişilemiyor",
             TicketPriority.High);
@@ -170,7 +170,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void CreateTicket_RepositoryThrows_ShouldPropagateException()
+    public async Task CreateTicketAsync_RepositoryThrows_ShouldPropagateException()
     {
         // Arrange
         var repository = new ThrowingTicketRepository();
@@ -179,8 +179,8 @@ public class TicketServiceTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var exception = Assert.Throws<InvalidOperationException>(() => 
-            service.CreateTicket(
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.CreateTicketAsync(
                 "Sunucu çalışmıyor",
                 "Sunucuya erişilemiyor",
                 TicketPriority.High));

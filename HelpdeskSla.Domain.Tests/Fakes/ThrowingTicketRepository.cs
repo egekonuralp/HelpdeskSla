@@ -34,7 +34,9 @@ public class ThrowingTicketRepository : ITicketRepository
 
     public Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        throw new InvalidOperationException("Repository kayıt işlemi başarısız.");
     }
 
     public Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)

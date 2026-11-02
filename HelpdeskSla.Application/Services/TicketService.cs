@@ -77,21 +77,6 @@ public class TicketService
         return _repository.GetAllAsync(cancellationToken);
     }
 
-    public Task<PagedResult<Ticket>> GetPagedTicketsAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        if (pageNumber < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pageNumber));
-        }
-
-        if (pageSize < 0 || pageSize > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pageSize));
-        }
-
-        return _repository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
-    }
-
     public Task<PagedResult<Ticket>> GetPagedTicketsAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);

@@ -21,7 +21,5 @@ public interface ITicketRepository
 
     Task AddAuditLogAsync(TicketAuditLog auditLog, CancellationToken cancellationToken = default);
 
-    Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
-
     Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default);
 }

@@ -99,35 +99,6 @@ public class EfTicketRepository : ITicketRepository
         await _context.TicketAuditLogs.AddAsync(auditLog, cancellationToken);
     }
 
-    public async Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        if (pageNumber < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pageNumber));
-        }
-
-        if (pageSize < 0 || pageSize > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pageSize));
-        }
-
-        var query = _context.Tickets.AsNoTracking();
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var skip = ((long) pageNumber - 1) * pageSize;
-
-        var items = skip > int.MaxValue
-            ? new List<Ticket>()
-            : await query
-                .OrderBy(t => t.Id)
-                .Skip((int)skip)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-        return new PagedResult<Ticket>(items, pageNumber, pageSize, totalCount);
-    }
-
     public async Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);

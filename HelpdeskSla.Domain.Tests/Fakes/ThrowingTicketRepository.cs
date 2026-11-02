@@ -12,11 +12,6 @@ public class ThrowingTicketRepository : ITicketRepository
             "Repository kayıt işlemi başarısız.");
     }
 
-    public Ticket? GetById(int id)
-    {
-        throw new NotImplementedException();
-    }
-
     public IReadOnlyList<Ticket> GetAll()
     {
         throw new NotImplementedException();

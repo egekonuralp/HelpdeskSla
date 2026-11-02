@@ -13,16 +13,6 @@ public class FakeTicketRepository : ITicketRepository
         Tickets.Add(ticket);
     }
 
-    public Ticket? GetById(int id)
-    {
-        if (id <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(id));
-        }
-
-        return Tickets.FirstOrDefault(t => t.Id == id);
-    }
-
     public IReadOnlyList<Ticket> GetAll()
     {
         return Tickets.AsReadOnly();
@@ -31,7 +21,10 @@ public class FakeTicketRepository : ITicketRepository
     public Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(GetById(id));
+        
+        Ticket? ticket = Tickets.FirstOrDefault(t => t.Id == id);
+
+        return Task.FromResult(ticket);
     }
 
     public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -52,7 +45,8 @@ public class FakeTicketRepository : ITicketRepository
     public Task<Ticket?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(GetById(id));
+
+        return GetByIdAsync(id, cancellationToken);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

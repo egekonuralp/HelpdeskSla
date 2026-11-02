@@ -27,20 +27,6 @@ public class EfTicketRepository : ITicketRepository
         _context.SaveChanges();
     }
 
-    public Ticket? GetById(int id)
-    {
-        if (id <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(id));
-        }
-
-        var savedTicket = _context.Tickets
-            .AsNoTracking()
-            .FirstOrDefault(t => t.Id == id);
-
-        return savedTicket;
-    }
-
     public IReadOnlyList<Ticket> GetAll()
     {
         var tickets = _context.Tickets

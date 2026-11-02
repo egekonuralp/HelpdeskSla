@@ -190,7 +190,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void GetTicketById_NonExistingTicket_ReturnsNull()
+    public async Task GetTicketByIdAsync_NonExistingTicket_ReturnsNull()
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
@@ -199,7 +199,7 @@ public class TicketServiceTests
         var service = new TicketService(repository, unitOfWork);
 
         // Act
-        var tickets = service.GetTicketById(999);
+        var tickets = await service.GetTicketByIdAsync(999);
 
         // Assert
         Assert.Null(tickets);

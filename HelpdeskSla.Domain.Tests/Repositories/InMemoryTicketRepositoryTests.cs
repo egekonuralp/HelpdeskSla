@@ -10,7 +10,7 @@ namespace HelpdeskSla.Domain.Tests.Repositories;
 public class InMemoryTicketRepositoryTests
 {
     [Fact]
-    public void Add_ValidTicket_ShouldStoreTicket()
+    public async Task AddAsync_ValidTicket_ShouldStoreTicket()
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
@@ -21,8 +21,8 @@ public class InMemoryTicketRepositoryTests
             TicketPriority.High);
 
         // Act
-        repository.Add(ticket);
-        var tickets = repository.GetAll();
+        await repository.AddAsync(ticket);
+        var tickets = await repository.GetAllAsync();
 
         // Assert
         Assert.Single(tickets);
@@ -44,7 +44,7 @@ public class InMemoryTicketRepositoryTests
             "Sunucuya erişilemiyor",
             TicketPriority.High);
 
-        var tickets = repository.GetAll();
+        var tickets = await repository.GetAllAsync();
 
         // Assert
         Assert.Single(tickets);

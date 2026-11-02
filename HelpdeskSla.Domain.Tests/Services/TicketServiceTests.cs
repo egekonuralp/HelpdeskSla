@@ -551,8 +551,16 @@ public class TicketServiceTests
 
         var service = new TicketService(repository, unitOfWork);
 
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "id",
+            SortDirection = "asc"
+        };
+
         // Act
-        var result = await service.GetPagedTicketsAsync(1, 10);
+        var result = await service.GetPagedTicketsAsync(parameters);
 
         // Assert
         Assert.NotNull(result);
@@ -576,9 +584,17 @@ public class TicketServiceTests
         var unitOfWork = new FakeUnitOfWork();
         var service = new TicketService(repository, unitOfWork);
 
+        var parameters = new TicketQueryParameters
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = "id",
+            SortDirection = "asc"
+        };
+
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            service.GetPagedTicketsAsync(pageNumber, pageSize));
+            service.GetPagedTicketsAsync(parameters));
     }
 
     [Fact]

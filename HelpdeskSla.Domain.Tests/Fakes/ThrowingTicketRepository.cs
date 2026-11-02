@@ -49,11 +49,6 @@ public class ThrowingTicketRepository : ITicketRepository
         throw new NotSupportedException("ThrowingTicketRepository audit log eklemeyi desteklemiyor.");
     }
 
-    public Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        throw new InvalidOperationException("Simulated repository failure.");
-    }
-
     public Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
         throw new InvalidOperationException("Simulated repository failure.");

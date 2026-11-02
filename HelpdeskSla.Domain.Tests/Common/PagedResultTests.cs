@@ -74,7 +74,15 @@ public class PagedResultTests
         {
             var repository = new EfTicketRepository(context);
 
-            var result = await repository.GetPagedAsync(2, 2);
+            var parameters = new TicketQueryParameters
+            {
+                PageNumber = 2,
+                PageSize = 2,
+                SortBy = "id",
+                SortDirection = "asc"
+            };  
+
+            var result = await repository.GetPagedAsync(parameters);
 
             // Assert
             Assert.Equal(2, result.PageNumber);

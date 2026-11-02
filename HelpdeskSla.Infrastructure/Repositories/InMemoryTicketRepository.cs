@@ -69,32 +69,6 @@ public class InMemoryTicketRepository : ITicketRepository
         throw new NotSupportedException("InMemoryTicketRepository audit log eklemeyi desteklemiyor.");
     }
 
-    public Task<PagedResult<Ticket>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (pageNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(pageNumber));
-
-        if (pageSize <= 0 || pageSize > 100)
-            throw new ArgumentOutOfRangeException(nameof(pageSize));
-
-        var skip = ((long)pageNumber - 1) * pageSize;
-
-        var orderedTickets = _tickets
-            .OrderBy(t => t.Id);
-
-        var items = skip > int.MaxValue
-            ? new List<Ticket>()
-            : orderedTickets
-                .Skip((int)skip)
-                .Take(pageSize)
-                .ToList();
-
-        return Task.FromResult(new PagedResult<Ticket>(items, pageNumber, pageSize, _tickets.Count));
-    }
-
-
     public Task<PagedResult<Ticket>> GetPagedAsync(TicketQueryParameters parameters, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);

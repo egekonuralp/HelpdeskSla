@@ -16,23 +16,9 @@ public class TicketService
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
-    public Ticket CreateTicket(string title, string description, TicketPriority priority)
-    {
-        var ticket = new Ticket(title, description, priority);
-
-        _repository.Add(ticket);
-
-        return ticket;
-    }
-
     public void AssignTicket(Ticket ticket, int userId)
     {
         ticket.Assign(userId);
-    }
-
-    public Ticket? GetTicketById(int id)
-    {        
-        return _repository.GetById(id);
     }
 
     public IReadOnlyList<Ticket> GetAllTickets()

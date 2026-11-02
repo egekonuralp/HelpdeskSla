@@ -13,16 +13,6 @@ public class InMemoryTicketRepository : ITicketRepository
         _tickets.Add(ticket);
     }
 
-    public Ticket? GetById(int id)
-    {
-        if (id <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(id));
-        }
-
-        return _tickets.FirstOrDefault(t => t.Id == id);
-    }
-
     public IReadOnlyList<Ticket> GetAll()
     {
         return _tickets.AsReadOnly();
@@ -32,8 +22,13 @@ public class InMemoryTicketRepository : ITicketRepository
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var ticket = GetById(id);
+        if (id < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
         
+        Ticket? ticket = _tickets.FirstOrDefault(t => t.Id == id);
+
         return Task.FromResult(ticket);
     }
 
@@ -59,7 +54,7 @@ public class InMemoryTicketRepository : ITicketRepository
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.FromResult(GetById(id));
+        return GetByIdAsync(id, cancellationToken);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

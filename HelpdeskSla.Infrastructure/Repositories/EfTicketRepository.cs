@@ -27,15 +27,6 @@ public class EfTicketRepository : ITicketRepository
         _context.SaveChanges();
     }
 
-    public IReadOnlyList<Ticket> GetAll()
-    {
-        var tickets = _context.Tickets
-            .AsNoTracking()
-            .ToList();
-
-        return tickets;
-    }
-
     public async Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0)

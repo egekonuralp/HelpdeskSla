@@ -7,8 +7,6 @@ public interface ITicketRepository
 {
     void Add(Ticket ticket);
 
-    IReadOnlyList<Ticket> GetAll();
-
     Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default);

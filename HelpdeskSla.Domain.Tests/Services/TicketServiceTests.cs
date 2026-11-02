@@ -206,23 +206,7 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public void GetAllTickets_EmptyRepository_ReturnsEmptyList()
-    {
-        // Arrange
-        var repository = new InMemoryTicketRepository();
-        var unitOfWork = new FakeUnitOfWork();
-
-        var service = new TicketService(repository, unitOfWork);
-
-        // Act
-        var tickets = service.GetAllTickets();
-
-        // Assert
-        Assert.Empty(tickets);
-    }
-
-    [Fact]
-    public void GetAllTickets_WithTwoTickets_ReturnsBothTickets()
+    public async Task GetAllTicketsAsync_WithTwoTickets_ReturnsBothTickets()
     {
         // Arrange
         var repository = new InMemoryTicketRepository();
@@ -240,11 +224,11 @@ public class TicketServiceTests
             "İnternet bağlantısı kesiliyor.",
             TicketPriority.High);
 
-        repository.Add(ticket1);
-        repository.Add(ticket2);
+        await repository.AddAsync(ticket1);
+        await repository.AddAsync(ticket2);
 
         // Act
-        var tickets = service.GetAllTickets();
+        var tickets = await service.GetAllTicketsAsync();
 
         // Assert
         Assert.Equal(2, tickets.Count);
@@ -289,7 +273,7 @@ public class TicketServiceTests
         Assert.Equal("Async Ticket", ticket.Title);
         Assert.Equal(TicketPriority.High, ticket.Priority);
 
-        var savedTicket = Assert.Single(repository.GetAll());
+        var savedTicket = Assert.Single(await repository.GetAllAsync());
         Assert.Same(ticket, savedTicket);
 
         Assert.Equal(1, unitOfWork.SaveChangesCallCount);
@@ -315,7 +299,7 @@ public class TicketServiceTests
                 TicketPriority.Critical,
                 cts.Token));
 
-        Assert.Empty(repository.GetAll());
+        Assert.Empty(await repository.GetAllAsync());
     }
 
     [Fact]

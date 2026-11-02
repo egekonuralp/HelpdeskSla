@@ -96,55 +96,6 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
-    public void GetAll_WithTwoTickets_ReturnsBothTickets()
-    {    
-        // Arrange
-        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        using var context = new HelpdeskDbContext(options);
-        var repository = new EfTicketRepository(context);
-
-        var ticket1 = new Ticket(
-            "Ticket Title",
-            "Ticket Description",
-            TicketPriority.Critical);
-
-        var ticket2 = new Ticket(
-            "Ticket Title SS",
-            "Ticket Description SS",
-            TicketPriority.Critical);
-
-        repository.Add(ticket1);
-        repository.Add(ticket2);
-
-        // Act
-        var tickets = repository.GetAll();
-
-        // Assert
-        Assert.Equal(2, tickets.Count);
-    }
-
-    [Fact]
-    public void GetAll_EmptyDatabase_ReturnsEmptyList()
-    {
-        // Arrange
-        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        using var context = new HelpdeskDbContext(options);
-        var repository = new EfTicketRepository(context);
-
-        // Act
-        var tickets = repository.GetAll();
-
-        // Assert
-        Assert.Empty(tickets);
-    }
-
-    [Fact]
     public async Task GetByIdAsync_ExistingTicket_ReturnsTicket()
     {
         // Arrange
@@ -160,7 +111,8 @@ public class EfTicketRepositoryTests
             "Asenkron Ticket sorgulama",
             TicketPriority.High);
 
-        repo.Add(ticket);
+        await repo.AddAsync(ticket);
+        await context.SaveChangesAsync();
 
         // Act
         var savedTicket = await repo.GetByIdAsync(ticket.Id);

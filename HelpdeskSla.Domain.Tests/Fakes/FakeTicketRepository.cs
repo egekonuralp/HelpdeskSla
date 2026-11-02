@@ -30,7 +30,10 @@ public class FakeTicketRepository : ITicketRepository
     public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(GetAll());
+        
+        IReadOnlyList<Ticket> tickets = Tickets.AsReadOnly();
+
+        return Task.FromResult(tickets);
     }
 
     public Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)

@@ -13,11 +13,6 @@ public class InMemoryTicketRepository : ITicketRepository
         _tickets.Add(ticket);
     }
 
-    public IReadOnlyList<Ticket> GetAll()
-    {
-        return _tickets.AsReadOnly();
-    }
-
     public Task<Ticket?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -36,7 +31,7 @@ public class InMemoryTicketRepository : ITicketRepository
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var tickets = GetAll();
+        IReadOnlyList<Ticket> tickets = _tickets.AsReadOnly();
 
         return Task.FromResult(tickets);
     }
@@ -86,7 +81,7 @@ public class InMemoryTicketRepository : ITicketRepository
 
         var skip = ((long)pageNumber - 1) * pageSize;
 
-        var orderedTickets = GetAll()
+        var orderedTickets = _tickets
             .OrderBy(t => t.Id);
 
         var items = skip > int.MaxValue
@@ -96,7 +91,7 @@ public class InMemoryTicketRepository : ITicketRepository
                 .Take(pageSize)
                 .ToList();
 
-        return Task.FromResult(new PagedResult<Ticket>(items, pageNumber, pageSize, GetAll().Count));
+        return Task.FromResult(new PagedResult<Ticket>(items, pageNumber, pageSize, _tickets.Count));
     }
 
 
@@ -116,7 +111,7 @@ public class InMemoryTicketRepository : ITicketRepository
             throw new ArgumentOutOfRangeException(nameof(parameters.PageSize));
         }
 
-        IEnumerable<Ticket> query = GetAll().AsEnumerable();
+        IEnumerable<Ticket> query = _tickets;
 
         if (parameters.Status.HasValue)
         {

@@ -21,11 +21,6 @@ public class TicketService
         ticket.Assign(userId);
     }
 
-    public IReadOnlyList<Ticket> GetAllTickets()
-    {
-        return _repository.GetAll();
-    }
-
     public Task<Ticket?> GetTicketByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0)

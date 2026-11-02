@@ -100,4 +100,26 @@ public class PagedResultTests
             Assert.Equal(orderedIds[3], result.Items[1].Id);    
         }
     }
+
+    [Fact]
+    public void PagedResult_ZeroPageNumber_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var items = Array.Empty<Ticket>();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => 
+            new PagedResult<Ticket>(items, 0, 10, 0));
+    }
+
+    [Fact]
+    public void PagedResult_ZeroPageSize_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var items = Array.Empty<Ticket>();
+
+        // Act & Assert 
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+             new PagedResult<Ticket>(items, 1, 0, 0));
+    }
 }

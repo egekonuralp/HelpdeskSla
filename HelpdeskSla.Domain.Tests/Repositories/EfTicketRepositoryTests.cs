@@ -469,6 +469,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task ConcurrentUpdates_SecondSave_ThrowsConcurrencyException()
     {
         var databaseName = $"HelpdeskSlaConcurrencyTest_{Guid.NewGuid():N}";
@@ -523,6 +524,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task SaveChangesAsync_ConcurrencyConflict_ThrowsTicketConcurrencyException()
     {
         // Arrange
@@ -582,6 +584,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task UpdateTicketTitleAsync_StaleRowVersion_ThrowsTicketConcurrencyException()
     {
         // Arrange
@@ -657,6 +660,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task UpdateTicketTitleAsync_ValidRowVersion_UpdatesTicketAndCreatesAuditLog()
     {
         // Arrange
@@ -724,6 +728,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task SaveChangesAsync_InvalidAuditLogForeignKey_RollsBackTicketUpdate()
     {
         // Arrange
@@ -791,6 +796,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task ExplicitTransaction_SecondSaveFails_RollsBackFirstSave()
     {
         // Arrange
@@ -869,6 +875,7 @@ public class EfTicketRepositoryTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task ExplicitTransaction_BothSavesSucceed_CommitsAllChanges()
     {
         // Arrange

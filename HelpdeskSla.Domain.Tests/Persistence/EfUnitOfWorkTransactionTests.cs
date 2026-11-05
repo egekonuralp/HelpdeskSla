@@ -11,6 +11,7 @@ namespace HelpdeskSla.Domain.Tests.Persistence;
 public class EfUnitOfWorkTransactionTests
 {
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task UnitOfWork_BothSavesSucceed_CommitsAllChanges()
     {
         // Arrange
@@ -95,6 +96,7 @@ public class EfUnitOfWorkTransactionTests
     }
 
     [Fact]
+    [Trait("Category", "SqlServerIntegration")]
     public async Task UnitOfWork_SecondSaveFails_RollsBackFirstSave()
     {
         // Arrange

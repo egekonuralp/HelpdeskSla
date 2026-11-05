@@ -4,6 +4,7 @@ using HelpdeskSla.Infrastructure.Persistence;
 using HelpdeskSla.Infrastructure.Repositories;
 using HelpdeskSla.Api.ExceptionHandling;
 using Microsoft.EntityFrameworkCore;
+using HelpdeskSla.Application.Common.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services
+    .AddOptions<SlaOptions>()
+    .Bind(builder.Configuration.GetSection(SlaOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 // Database
 builder.Services.AddDbContext<HelpdeskDbContext>(options => options.UseSqlServer(

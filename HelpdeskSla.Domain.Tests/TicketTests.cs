@@ -2,6 +2,7 @@
 using HelpdeskSla.Domain.Enums;
 using HelpdeskSla.Domain.Exceptions;
 using HelpdeskSla.Domain.Tests.Builders;
+using HelpdeskSla.Domain.Tests.Common;
 using HelpdeskSla.Domain.Tests.TestData;
 using Microsoft.Extensions.Time.Testing;
 using System;
@@ -1692,6 +1693,47 @@ namespace HelpdeskSla.Domain.Tests
             Assert.Equal(TicketPriority.Medium, ticket.Priority);
             Assert.Equal(5, ticket.AssignedUserId);
             Assert.NotNull(ticket.ResolvedAt);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomSlaTarget_SetsSlaDeadline()
+        {
+            // Arrange
+            var startTime = new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.Zero);
+            var fakeTime = new FakeTimeProvider(startTime);
+            var slaTarget = TimeSpan.FromHours(5);
+
+            // Act
+            var ticket = new Ticket(
+                "Sunucu çalışmıyor",
+                "Sunucuya erişilemiyor",
+                TicketPriority.High,
+                slaTarget, 
+                fakeTime);
+
+            // Assert
+            Assert.Equal(startTime.Add(slaTarget), ticket.SlaDeadline);
+            Assert.Equal(slaTarget, ticket.SlaTarget);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void Constructor_WithNonPositiveSlaTarget_ThrowsArgumentOutOfRangeException(int hours)
+        {
+            // Arrange
+            var slaTarget = TimeSpan.FromHours(hours);
+
+            // Act
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => 
+                new Ticket(
+                    "Sunucu çalışmıyor",
+                    "Sunucuya erişilemiyor",
+                    TicketPriority.High,
+                    slaTarget));
+
+            // Assert
+            Assert.Equal("slaTarget", exception.ParamName);
         }
     }
 }

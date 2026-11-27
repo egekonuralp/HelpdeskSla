@@ -53,14 +53,8 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public DateTimeOffset SlaDeadline
-        {
-            get
-            {
-                return CreatedAt + SlaTarget;
-            }
-        }
-
+        public DateTimeOffset SlaDeadline { get; private set; }
+        
         public TimeSpan? RemainingSlaTime
         {
             get
@@ -120,7 +114,8 @@ namespace HelpdeskSla.Domain.Entities
             Description = description;
             Priority = priority;
             Status = TicketStatus.Open;
-            CreatedAt = _timeProvider.GetUtcNow();
+            CreatedAt = _timeProvider.GetUtcNow(); 
+            SlaDeadline = CreatedAt + SlaTarget;
         }
 
         private Ticket()
@@ -240,6 +235,7 @@ namespace HelpdeskSla.Domain.Entities
             }
 
             Priority = newPriority;
+            SlaDeadline = CreatedAt + SlaTarget;
         }
 
         public void UpdateTitle(string newTitle)

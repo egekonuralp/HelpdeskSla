@@ -38,7 +38,8 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
             .IsRowVersion();
 
         builder.Ignore(ticket => ticket.ResolutionTime);
-        builder.Ignore(ticket => ticket.SlaDeadline);
+        builder.Property(ticket => ticket.SlaDeadline)
+            .IsRequired();
         builder.Ignore(ticket => ticket.RemainingSlaTime);
         builder.Ignore(ticket => ticket.IsSlaBreached);
         builder.Ignore(ticket => ticket.SlaStatus);

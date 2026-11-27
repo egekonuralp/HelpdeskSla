@@ -38,20 +38,19 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public TimeSpan SlaTarget
+        private static TimeSpan GetDefaultSlaTarget(TicketPriority priority)
         {
-            get
+            return priority switch
             {
-                return Priority switch
-                {
-                    TicketPriority.Low => TimeSpan.FromHours(24),
-                    TicketPriority.Medium => TimeSpan.FromHours(12),
-                    TicketPriority.High => TimeSpan.FromHours(8),
-                    TicketPriority.Critical => TimeSpan.FromHours(2),
-                    _ => throw new ArgumentOutOfRangeException(nameof(Priority))
-                };
-            }
+                TicketPriority.Low => TimeSpan.FromHours(24),
+                TicketPriority.Medium => TimeSpan.FromHours(12),
+                TicketPriority.High => TimeSpan.FromHours(8),
+                TicketPriority.Critical => TimeSpan.FromHours(2),
+                _ => throw new ArgumentOutOfRangeException(nameof(priority), "Invalid ticket priority.")
+            };
         }
+
+        public TimeSpan SlaTarget => SlaDeadline - CreatedAt;
 
         public DateTimeOffset SlaDeadline { get; private set; }
         
@@ -98,14 +97,19 @@ namespace HelpdeskSla.Domain.Entities
             }
         }
 
-        public Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
+        public Ticket(string title, string description, TicketPriority priority, TimeSpan slaTarget, TimeProvider? timeProvider = null)
         {
-            EnsureNotEmpty(title, nameof(title), "Ticket title cannot be empty.");
+            EnsureNotEmpty(title, nameof(title), "Ticket title cannot be empty."); 
             EnsureNotEmpty(description, nameof(description), "Ticket description cannot be empty.");
 
             if (!Enum.IsDefined(priority))
             {
                 throw new ArgumentOutOfRangeException(nameof(priority), "Invalid ticket priority.");
+            }
+
+            if (slaTarget <= TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(slaTarget), "SLA target must be a positive time span.");
             }
 
             _timeProvider = timeProvider ?? TimeProvider.System;
@@ -114,8 +118,14 @@ namespace HelpdeskSla.Domain.Entities
             Description = description;
             Priority = priority;
             Status = TicketStatus.Open;
-            CreatedAt = _timeProvider.GetUtcNow(); 
-            SlaDeadline = CreatedAt + SlaTarget;
+            CreatedAt = _timeProvider.GetUtcNow();
+            SlaDeadline = CreatedAt + slaTarget;
+        }
+
+        public Ticket(string title, string description, TicketPriority priority, TimeProvider? timeProvider = null)
+            : this(title, description, priority, GetDefaultSlaTarget(priority), timeProvider)
+        {
+          
         }
 
         private Ticket()
@@ -235,7 +245,7 @@ namespace HelpdeskSla.Domain.Entities
             }
 
             Priority = newPriority;
-            SlaDeadline = CreatedAt + SlaTarget;
+            SlaDeadline = CreatedAt + GetDefaultSlaTarget(newPriority);
         }
 
         public void UpdateTitle(string newTitle)

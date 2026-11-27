@@ -1290,4 +1290,41 @@ public class EfTicketRepositoryTests
         Assert.Equal(startTime.AddHours(1), result.Items[1].CreatedAt);
         Assert.Equal(startTime, result.Items[2].CreatedAt);
     }
+
+    [Fact]
+    public void Add_ValidTicket_PersistsSlaDeadline()
+    {
+        // Arrange
+        var databaseName = Guid.NewGuid().ToString();
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.Zero));
+        var startTime = timeProvider.GetUtcNow();
+
+        var options = new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseInMemoryDatabase(databaseName)
+            .Options;
+
+        var ticket = new Ticket(
+            "Persistent Ticket",
+            "İkinci context üzerinden okunacak.",
+            TicketPriority.High,
+            timeProvider);
+
+        // Act
+        using (var context = new HelpdeskDbContext(options))
+        {
+            var repository = new EfTicketRepository(context);
+            repository.Add(ticket);
+        }
+
+        // Assert
+        using (var readContext = new HelpdeskDbContext(options))
+        {
+            var savedTicket = readContext.Tickets
+                .AsNoTracking()
+                .FirstOrDefault();
+
+            Assert.NotNull(savedTicket);
+            Assert.Equal(startTime.AddHours(8), savedTicket.SlaDeadline);
+        }
+    }
 }

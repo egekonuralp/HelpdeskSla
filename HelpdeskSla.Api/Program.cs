@@ -29,6 +29,7 @@ builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
 // Application Services
 builder.Services.AddScoped<TicketService>();
+builder.Services.AddSingleton<ISlaPolicy, SlaPolicy>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
